@@ -24,7 +24,7 @@
 html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #app{display:flex;flex-direction:column;height:100dvh;max-width:520px;margin:0 auto}
 
-/* ── HEADER ── */
+/* HEADER */
 .hdr{background:linear-gradient(180deg,#000c1f,#000814);border-bottom:1px solid var(--bd);padding:calc(var(--st) + 12px) 16px 12px;flex-shrink:0;position:relative;overflow:hidden}
 .hdr::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% -20%,rgba(255,215,0,.06),transparent 70%);pointer-events:none}
 .hdr-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
@@ -38,7 +38,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 @keyframes lp{0%,100%{opacity:1;box-shadow:0 0 0 0 rgba(34,197,94,.4)}70%{opacity:.6;box-shadow:0 0 0 5px rgba(34,197,94,0)}}
 .live-lbl{font-size:10px;font-weight:700;color:var(--green);letter-spacing:1px}
 
-/* ── PARK TABS ── */
+/* PARK TABS */
 .ptabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px}
 .ptabs::-webkit-scrollbar{display:none}
 .ptab{flex-shrink:0;padding:7px 14px;border-radius:20px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
@@ -47,33 +47,49 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .ptab.hs.active{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.4);color:var(--hs)}
 .ptab.ak.active{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.4);color:var(--ak)}
 
-/* ── STATS ROW ── */
+/* SEARCH */
+.search-wrap{position:relative;margin-bottom:10px}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;z-index:1}
+.search-input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:10px;padding:8px 34px 8px 30px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.search-input:focus{border-color:rgba(255,215,0,.4)}
+.search-input::placeholder{color:var(--t3)}
+.search-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:var(--s3);border:none;border-radius:50%;color:var(--t2);cursor:pointer;font-size:11px;width:20px;height:20px;display:none;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent;line-height:1}
+.search-clear.vis{display:flex}
+
+/* STATS ROW */
 .stats-row{display:flex;gap:0;margin-bottom:0}
 .si{text-align:center;flex:1}
 .sn{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;line-height:1}
 .sl{font-size:9px;color:var(--t3);letter-spacing:1.5px;margin-top:2px}
 
-/* ── REFRESH PILL ── */
+/* REFRESH PILL */
 .ref-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
 .ref-pill{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.18);border-radius:16px;padding:4px 10px;font-size:10px;color:var(--gold);font-weight:600;letter-spacing:.5px}
 .countdown{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)}
 
-/* ── CONTENT ── */
+/* CONTENT */
 .content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px calc(20px + var(--sb))}
 .content::-webkit-scrollbar{width:3px}
 .content::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 
-/* ── FILTER BAR ── */
-.fbar{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
+/* FILTER BAR */
+.fbar{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;align-items:center}
 .fbar::-webkit-scrollbar{display:none}
 .fb{flex-shrink:0;padding:5px 12px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .fb.on{background:var(--s3);color:var(--text)}
 .fb.dn.on{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.3)}
 
-/* ── LAND HEADER ── */
+/* PARK BADGE */
+.park-badge{font-size:9px;font-weight:700;letter-spacing:.5px;padding:2px 6px;border-radius:4px;margin-left:2px;white-space:nowrap}
+.park-badge.mk{background:rgba(74,222,128,.15);color:var(--mk)}
+.park-badge.ep{background:rgba(96,165,250,.15);color:var(--ep)}
+.park-badge.hs{background:rgba(249,115,22,.15);color:var(--hs)}
+.park-badge.ak{background:rgba(167,139,250,.15);color:var(--ak)}
+
+/* LAND HEADER */
 .land-hdr{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--t3);text-transform:uppercase;padding:12px 4px 6px;border-bottom:1px solid var(--bd);margin-bottom:8px}
 
-/* ── RIDE CARD ── */
+/* RIDE CARD */
 .rc{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-bottom:7px;display:flex;flex-direction:column;gap:9px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .25s}
 .rc::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
 .rc.open::before{background:var(--green)}
@@ -84,10 +100,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .rc-main{display:flex;align-items:center;gap:11px}
 .rsd{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:1px}
 .rsd.open{background:var(--green);box-shadow:0 0 5px rgba(34,197,94,.5)}
-.rsd.down{background:var(--red);box-shadow:0 0 5px rgba(239,68,68,.5);animation:dp 1.2s infinite}
+.rsd.down{background:var(--red);box-shadow:0 0 5px rgba(239,68,68,.5);animation:rdp 1.2s infinite}
 .rsd.refurb{background:var(--yellow)}
 .rsd.unknown{background:var(--t3)}
-@keyframes dp{0%,100%{opacity:1}50%{opacity:.3}}
+@keyframes rdp{0%,100%{opacity:1}50%{opacity:.3}}
 .ri{flex:1;min-width:0}
 .rname{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text)}
 .rmeta{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;align-items:center}
@@ -97,12 +113,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .wl{color:var(--green)}.wm{color:var(--yellow)}.wh{color:var(--red)}
 .wlab{font-size:9px;color:var(--t3);margin-top:2px;letter-spacing:.5px}
 
-/* ── DOWN PANEL ── */
+/* DOWN PANEL */
 .dp-panel{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.14);border-radius:10px;padding:12px}
 .dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
 .dp-cell{background:rgba(0,0,0,.2);border-radius:8px;padding:8px;text-align:center}
 .dp-lbl{font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
 .dp-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700}
+.dp-val.sm{font-size:12px;line-height:1.4}
 .ai-hdr{font-size:9px;font-weight:700;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
 .ai-ld{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);padding:2px 0}
 .ms{width:9px;height:9px;border:1.5px solid rgba(255,255,255,.12);border-top-color:var(--t2);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
@@ -114,33 +131,33 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .pills{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px}
 .pill{background:var(--s3);border:1px solid var(--bd2);border-radius:6px;padding:2px 8px;font-size:10px;color:var(--t2)}
 
-/* ── OPEN EXPAND ── */
+/* OPEN EXPAND */
 .op-panel{background:rgba(34,197,94,.04);border:1px solid rgba(34,197,94,.12);border-radius:10px;padding:10px 12px}
 .op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .oc{text-align:center}
 .ol{font-size:9px;color:var(--t3);letter-spacing:1px;margin-bottom:2px}
 .ov{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600}
 
-/* ── LOADING ── */
+/* LOADING */
 .lscr{display:flex;flex-direction:column;align-items:center;justify-content:center;height:240px;gap:14px}
 .bspin{width:30px;height:30px;border:3px solid rgba(255,215,0,.12);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite}
 .ltxt{font-size:12px;color:var(--t3)}
 
-/* ── ERROR ── */
-.err-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px 14px;margin-bottom:12px;display:flex;gap:10px;font-size:12px;color:var(--red);line-height:1.6}
+/* ERROR */
+.err-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;gap:10px;font-size:12px;color:var(--red);line-height:1.6}
 .setup-card{background:var(--s1);border:1px solid var(--bd);border-radius:12px;padding:16px}
 .sch{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:11px}
 .scr{display:flex;gap:9px;margin-bottom:9px;font-size:12px;color:var(--t2);line-height:1.6}
 .snum{width:20px;height:20px;border-radius:50%;background:var(--s3);border:1px solid var(--bd2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
 
-/* ── TOAST ── */
+/* TOAST */
 #toast{position:fixed;top:calc(var(--st)+78px);left:50%;transform:translateX(-50%) translateY(-18px);z-index:999;opacity:0;transition:all .3s;pointer-events:none;min-width:240px;max-width:310px}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .ti{background:#120606;border:1px solid rgba(239,68,68,.45);border-radius:14px;padding:11px 14px;display:flex;gap:10px;box-shadow:0 8px 28px rgba(239,68,68,.2)}
 .tt{font-size:12px;font-weight:700;color:var(--red)}
 .ts{font-size:11px;color:var(--t2);margin-top:1px}
 
-/* ── FOOTER ── */
+/* FOOTER */
 .urow{text-align:center;font-size:10px;color:var(--t3);padding:10px 0 3px;letter-spacing:.5px}
 .pby{text-align:center;padding:3px 0 10px;font-size:10px;color:var(--t3)}
 .pby a{color:var(--blue);text-decoration:none}
@@ -168,6 +185,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
       <button class="ptab ep"        onclick="selPark(5,'ep',this)">🌍 EPCOT</button>
       <button class="ptab hs"        onclick="selPark(7,'hs',this)">🎬 Hollywood Studios</button>
       <button class="ptab ak"        onclick="selPark(8,'ak',this)">🦁 Animal Kingdom</button>
+    </div>
+
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" class="search-input"
+        placeholder="Search rides across all parks…"
+        oninput="handleSearch(this.value)"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <button class="search-clear" id="search-clear" onclick="clearSearch()">✕</button>
     </div>
 
     <div class="stats-row">
@@ -198,25 +224,38 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 </div>
 
 <script>
-// ═══════════════════════════════════════════════════════
-// CONFIG
-// After deploying worker.js to Cloudflare, paste your URL:
+// ── CONFIG ──
 const WORKER = 'https://disney-proxy.grahamj2021.workers.dev';
-
-// Public CORS proxies — tried automatically as fallback
-// NOTE: These only work when served from https://, not file://
-// Deploy to Vercel/GitHub Pages and they will work perfectly
 const PROXIES = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?url=',
   'https://thingproxy.freeboard.io/fetch/',
 ];
 const QT = id => `https://queue-times.com/parks/${id}/queue_times.json`;
-const REFRESH_MS = 2 * 60 * 1000; // 2 minutes
+const REFRESH_MS = 2 * 60 * 1000;
 
-// ═══════════════════════════════════════════════════════
-// HISTORICAL DOWNTIME DATABASE
-// ═══════════════════════════════════════════════════════
+// ── PARK CONSTANTS ──
+const PARK_IDS    = [6, 5, 7, 8];
+const PARK_NAMES  = {6:'Magic Kingdom', 5:'EPCOT', 7:'Hollywood Studios', 8:'Animal Kingdom'};
+const PARK_CLS    = {6:'mk', 5:'ep', 7:'hs', 8:'ak'};
+const PARK_EMOJI  = {6:'🏰', 5:'🌍', 7:'🎬', 8:'🦁'};
+
+// ── MEET & GREET FILTER ──
+const MG_KEYWORDS = [
+  'meet & greet','meet and greet','character meet','character spot',
+  'character greeting','town square theater','princess fairytale hall',
+  'storybook dining','character dining','royal reception',
+  'super hero headquarters','star wars launch bay','character experience',
+];
+function isMeetGreet(name){
+  const n = name.toLowerCase();
+  if(MG_KEYWORDS.some(k => n.includes(k))) return true;
+  // Catch "Meet Ariel", "Meet Cinderella", etc. — but not ride names with those words
+  if(/^meet\s+[a-zA-Z]/i.test(name) && !/railway|train|coaster|mountain|mine/i.test(name)) return true;
+  return false;
+}
+
+// ── HISTORICAL DOWNTIME DATABASE ──
 const HIST = {
   'Seven Dwarfs Mine Train':                     {avg:28,freq:'High',rel:'Low'},
   "Tiana's Bayou Adventure":                    {avg:35,freq:'High',rel:'Low'},
@@ -251,89 +290,110 @@ const HIST = {
 
 function getH(name){
   if(HIST[name]) return HIST[name];
-  const low=name.toLowerCase();
-  const k=Object.keys(HIST).find(k=>k!=='_default'&&(
-    low.includes(k.toLowerCase().slice(0,10))||
+  const low = name.toLowerCase();
+  const k = Object.keys(HIST).find(k => k !== '_default' && (
+    low.includes(k.toLowerCase().slice(0,10)) ||
     k.toLowerCase().includes(low.slice(0,10))));
-  return k?HIST[k]:HIST._default;
+  return k ? HIST[k] : HIST._default;
 }
 
-// ═══════════════════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════════════════
-const S={
-  park:6,filter:'all',
-  rides:[],lands:[],
-  downSince:{},aiCache:{},expanded:new Set(),
-  prevDown:new Set(),lastFetch:null,
-  refreshTimer:null,countdownTimer:null,nextRefresh:null,
+// ── STATE ──
+const S = {
+  park:6, filter:'all', search:'',
+  rides:[], lands:[],
+  downSince:{}, aiCache:{}, expanded:new Set(),
+  prevDown:new Set(), lastFetch:null,
+  refreshTimer:null, countdownTimer:null, nextRefresh:null,
+  parkCache:{},   // {parkId: {data, ts}}
 };
 
-// ═══════════════════════════════════════════════════════
-// FETCH — no AbortSignal.timeout (Safari incompatible)
-// Uses Promise.race with a manual timeout instead
-// ═══════════════════════════════════════════════════════
+// ── FETCH HELPERS ──
 function fetchWithTimeout(url, ms){
-  return new Promise((resolve, reject)=>{
-    const t=setTimeout(()=>reject(new Error('timeout')), ms);
+  return new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
     fetch(url, {cache:'no-cache'})
-      .then(r=>{ clearTimeout(t); resolve(r); })
-      .catch(e=>{ clearTimeout(t); reject(e); });
+      .then(r => { clearTimeout(t); resolve(r); })
+      .catch(e => { clearTimeout(t); reject(e); });
   });
 }
 
-async function fetchPark(){
-  const lbl=document.getElementById('llbl');
-  if(lbl) lbl.textContent='UPDATING';
-
-  const qtUrl=QT(S.park);
-  const workerReady=WORKER&&!WORKER.includes('YOUR_WORKER');
-  const urls=[];
-  if(workerReady) urls.push(WORKER+'?park='+S.park);
-  PROXIES.forEach(p=>urls.push(p+encodeURIComponent(qtUrl)));
-
-  let data=null;
-  for(let i=0;i<urls.length;i++){
+async function fetchParkData(parkId){
+  const qtUrl = QT(parkId);
+  const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
+  const urls = [];
+  if(workerReady) urls.push(WORKER + '?park=' + parkId);
+  PROXIES.forEach(p => urls.push(p + encodeURIComponent(qtUrl)));
+  for(let i = 0; i < urls.length; i++){
     try{
-      const res=await fetchWithTimeout(urls[i], 9000);
+      const res = await fetchWithTimeout(urls[i], 9000);
       if(!res.ok) continue;
-      const text=await res.text();
-      // Strip any wrapping if proxy adds it
-      const json=JSON.parse(text.trim().replace(/^[^{[]*/,'').replace(/[^}\]]*$/,''));
-      if(json&&(json.lands||json.rides)){ data=json; break; }
+      const text = await res.text();
+      const json = JSON.parse(text.trim().replace(/^[^{[]*/,'').replace(/[^}\]]*$/,''));
+      if(json && (json.lands || json.rides)) return json;
     }catch(e){ continue; }
   }
+  return null;
+}
 
+// ── EXTRACT RIDES (filters M&G, returns ride array + lands) ──
+function extractRides(data){
+  const rides = [], lands = [];
+  function add(list, landName){
+    list.forEach(r => {
+      if(isMeetGreet(r.name)) return;
+      let status = 'open';
+      if(!r.is_open){
+        const age = r.last_updated ? (Date.now() - new Date(r.last_updated).getTime()) : 0;
+        status = age > 3 * 60 * 60 * 1000 ? 'refurb' : 'down';
+      }
+      rides.push({id:r.id, name:r.name, land:landName, isOpen:r.is_open,
+        wait:r.wait_time||0, hist:getH(r.name), status});
+    });
+  }
+  if(data.lands) data.lands.forEach(l => {
+    if(l.rides?.length){ lands.push(l.name); add(l.rides, l.name); }
+  });
+  if(data.rides?.length) add(data.rides, 'General');
+  return {rides, lands:[...new Set(lands)]};
+}
+
+// ── MAIN PARK FETCH ──
+async function fetchPark(){
+  const lbl = document.getElementById('llbl');
+  if(lbl) lbl.textContent = 'UPDATING';
+  const data = await fetchParkData(S.park);
   if(!data){
-    if(lbl) lbl.textContent='RETRY';
+    if(lbl) lbl.textContent = 'RETRY';
     if(!S.rides.length) showErr();
     scheduleRefresh(30000);
     return;
   }
-
+  S.parkCache[S.park] = {data, ts:Date.now()};
   processData(data);
-  S.lastFetch=new Date();
-  if(lbl) lbl.textContent='LIVE';
-  renderList();
+  S.lastFetch = new Date();
+  if(lbl) lbl.textContent = 'LIVE';
+  if(S.search){
+    // Refresh search results with updated data
+    searchAllParks(S.search);
+  } else {
+    renderList();
+  }
   scheduleRefresh(REFRESH_MS);
 }
 
 function scheduleRefresh(ms){
   clearTimeout(S.refreshTimer);
   clearInterval(S.countdownTimer);
-  S.nextRefresh=Date.now()+ms;
-  S.refreshTimer=setTimeout(fetchPark, ms);
-
-  // Countdown display
+  S.nextRefresh = Date.now() + ms;
+  S.refreshTimer = setTimeout(fetchPark, ms);
   function tick(){
-    const rem=Math.max(0,Math.ceil((S.nextRefresh-Date.now())/1000));
-    const m=Math.floor(rem/60);
-    const s=rem%60;
-    const el=document.getElementById('countdown');
-    if(el) el.textContent=`Next refresh: ${m}:${s.toString().padStart(2,'0')}`;
+    const rem = Math.max(0, Math.ceil((S.nextRefresh - Date.now()) / 1000));
+    const m = Math.floor(rem / 60), s = rem % 60;
+    const el = document.getElementById('countdown');
+    if(el) el.textContent = `Next refresh: ${m}:${s.toString().padStart(2,'0')}`;
   }
   tick();
-  S.countdownTimer=setInterval(tick,1000);
+  S.countdownTimer = setInterval(tick, 1000);
 }
 
 function manualRefresh(){
@@ -342,154 +402,229 @@ function manualRefresh(){
   fetchPark();
 }
 
-// ═══════════════════════════════════════════════════════
-// PROCESS
-// ═══════════════════════════════════════════════════════
+// ── PROCESS DATA FOR CURRENT PARK ──
 function processData(data){
-  const all=[],lands=[],nowDown=new Set();
+  const {rides:all, lands} = extractRides(data);
+  const nowDown = new Set();
+  all.forEach(r => { if(r.status === 'down') nowDown.add(r.id); });
 
-  function add(list,landName){
-    list.forEach(r=>{
-      let status='open';
-      if(!r.is_open){
-        const age=r.last_updated?(Date.now()-new Date(r.last_updated).getTime()):0;
-        status=age>3*60*60*1000?'refurb':'down';
-      }
-      all.push({id:r.id,name:r.name,land:landName,isOpen:r.is_open,
-        wait:r.wait_time||0,hist:getH(r.name),status});
-      if(status==='down') nowDown.add(r.id);
-    });
-  }
-
-  if(data.lands) data.lands.forEach(l=>{
-    if(l.rides?.length){ lands.push(l.name); add(l.rides,l.name); }
-  });
-  if(data.rides?.length) add(data.rides,'General');
-
-  // Toast alerts for newly downed rides
-  nowDown.forEach(id=>{
-    if(!S.prevDown.has(id)&&S.rides.length>0){
-      const r=all.find(x=>x.id===id);
-      if(r) showToast(r.name,'Just went offline');
+  nowDown.forEach(id => {
+    if(!S.prevDown.has(id) && S.rides.length > 0){
+      const r = all.find(x => x.id === id);
+      if(r) showToast(r.name, 'Just went offline');
     }
-    if(!S.downSince[id]) S.downSince[id]=Date.now();
+    if(!S.downSince[id]) S.downSince[id] = Date.now();
   });
-  Object.keys(S.downSince).forEach(id=>{
+  Object.keys(S.downSince).forEach(id => {
     if(!nowDown.has(+id)) delete S.downSince[id];
   });
 
-  S.prevDown=nowDown;
-  S.rides=all;
-  S.lands=[...new Set(lands)];
+  S.prevDown = nowDown;
+  S.rides = all;
+  S.lands = lands;
 
-  // Header stats
-  const open=all.filter(r=>r.status==='open').length;
-  const down=all.filter(r=>r.status==='down').length;
-  const waits=all.filter(r=>r.isOpen&&r.wait>0).map(r=>r.wait);
-  const avg=waits.length?Math.round(waits.reduce((a,b)=>a+b)/waits.length):0;
-  document.getElementById('s-open').textContent=open;
-  document.getElementById('s-down').textContent=down;
-  document.getElementById('s-wait').textContent=avg?avg+'m':'—';
+  const open  = all.filter(r => r.status === 'open').length;
+  const down  = all.filter(r => r.status === 'down').length;
+  const waits = all.filter(r => r.isOpen && r.wait > 0).map(r => r.wait);
+  const avg   = waits.length ? Math.round(waits.reduce((a,b) => a+b) / waits.length) : 0;
+  document.getElementById('s-open').textContent = open;
+  document.getElementById('s-down').textContent = down;
+  document.getElementById('s-wait').textContent = avg ? avg+'m' : '—';
 }
 
-// ═══════════════════════════════════════════════════════
-// PARK SELECT
-// ═══════════════════════════════════════════════════════
-function selPark(id,cls,btn){
-  S.park=id;
-  S.rides=[];S.lands=[];S.downSince={};S.aiCache={};
-  S.expanded=new Set();S.prevDown=new Set();
-  S.filter='all';
-  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
+// ── PARK SELECT ──
+function selPark(id, cls, btn){
+  S.park = id;
+  S.rides = []; S.lands = []; S.downSince = {}; S.aiCache = {};
+  S.expanded = new Set(); S.prevDown = new Set();
+  S.filter = 'all';
+  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  document.getElementById('content').innerHTML=
-    '<div class="lscr"><div class="bspin"></div><div class="ltxt">Loading…</div></div>';
-  document.getElementById('s-open').textContent='—';
-  document.getElementById('s-down').textContent='—';
-  document.getElementById('s-wait').textContent='—';
+  if(!S.search){
+    document.getElementById('content').innerHTML =
+      '<div class="lscr"><div class="bspin"></div><div class="ltxt">Loading…</div></div>';
+    document.getElementById('s-open').textContent = '—';
+    document.getElementById('s-down').textContent = '—';
+    document.getElementById('s-wait').textContent = '—';
+  }
   fetchPark();
 }
 
-// ═══════════════════════════════════════════════════════
-// LIST RENDER
-// ═══════════════════════════════════════════════════════
-function renderList(){
-  const c=document.getElementById('content');
-  const downN=S.rides.filter(r=>r.status==='down').length;
+// ── SEARCH ──
+let _searchTimer;
 
-  let rides=[...S.rides];
-  if(S.filter==='open') rides=rides.filter(r=>r.status==='open');
-  if(S.filter==='down') rides=rides.filter(r=>r.status==='down');
+function handleSearch(q){
+  S.search = (q || '').trim();
+  const clr = document.getElementById('search-clear');
+  if(clr) clr.classList.toggle('vis', !!S.search);
+  clearTimeout(_searchTimer);
+  if(!S.search){ renderList(); return; }
+  // Immediately show current-park matches
+  const instant = S.rides
+    .filter(r => r.name.toLowerCase().includes(S.search.toLowerCase()))
+    .map(r => ({...r, parkId:S.park, parkName:PARK_NAMES[S.park], parkCls:PARK_CLS[S.park]}));
+  renderSearchResults(instant, true);
+  // Then expand to all parks after a short debounce
+  _searchTimer = setTimeout(() => searchAllParks(S.search), 350);
+}
 
-  // Sort: down first, then refurb, then open (by wait time desc)
-  const rank={down:0,refurb:1,open:2};
-  rides.sort((a,b)=>{
-    if(rank[a.status]!==rank[b.status]) return rank[a.status]-rank[b.status];
-    return b.wait-a.wait;
+async function searchAllParks(q){
+  if(S.search !== q) return;
+  const now = Date.now();
+  const TTL = 2 * 60 * 1000;
+
+  const fetches = PARK_IDS.map(async pid => {
+    const cached = S.parkCache[pid];
+    if(cached && now - cached.ts < TTL) return {pid, data:cached.data};
+    const data = await fetchParkData(pid);
+    if(data) S.parkCache[pid] = {data, ts:now};
+    return {pid, data};
   });
 
-  // Group by land when not filtered
-  let html='';
-  if(S.filter==='all' && S.lands.length>0){
-    // Show by land grouping
-    S.lands.forEach(land=>{
-      const landRides=rides.filter(r=>r.land===land);
-      if(!landRides.length) return;
-      html+=`<div class="land-hdr">${land}</div>`;
-      html+=landRides.map(rideHTML).join('');
+  const results = await Promise.all(fetches);
+  if(S.search !== q) return; // Query changed while fetching
+
+  const ql = q.toLowerCase();
+  const matches = [];
+  results.forEach(({pid, data}) => {
+    if(!data) return;
+    const {rides} = extractRides(data);
+    rides
+      .filter(r => r.name.toLowerCase().includes(ql))
+      .forEach(r => matches.push({...r, parkId:pid, parkName:PARK_NAMES[pid], parkCls:PARK_CLS[pid]}));
+  });
+
+  renderSearchResults(matches, false);
+}
+
+function renderSearchResults(matches, loading){
+  const c = document.getElementById('content');
+  const rank = {down:0, refurb:1, open:2};
+
+  // Group by park, sorted within each park
+  let html = '';
+  PARK_IDS.forEach(pid => {
+    const pr = matches
+      .filter(r => r.parkId === pid)
+      .sort((a,b) => rank[a.status] !== rank[b.status] ? rank[a.status]-rank[b.status] : b.wait-a.wait);
+    if(!pr.length) return;
+    html += `<div class="land-hdr">${PARK_EMOJI[pid]} ${PARK_NAMES[pid]}</div>`;
+    html += pr.map(r => rideHTML(r)).join('');
+  });
+
+  const suffix = loading ? ' <span style="color:var(--t3);font-size:10px">searching all parks…</span>' : '';
+  c.innerHTML = `
+    <div class="fbar">
+      <span style="font-size:12px;color:var(--t2);display:flex;align-items:center;flex-wrap:wrap;gap:4px">
+        <span style="color:var(--text);font-weight:700">${matches.length}</span>
+        ride${matches.length !== 1 ? 's' : ''} found${suffix}
+      </span>
+    </div>
+    ${!matches.length && !loading ? `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides matching "${S.search}"</div>` : ''}
+    ${html}`;
+
+  matches.filter(r => r.status === 'down').forEach(loadAI);
+  startTimers();
+}
+
+function clearSearch(){
+  S.search = '';
+  const inp = document.getElementById('search-input');
+  if(inp){ inp.value = ''; inp.blur(); }
+  const clr = document.getElementById('search-clear');
+  if(clr) clr.classList.remove('vis');
+  clearTimeout(_searchTimer);
+  renderList();
+}
+
+// ── RENDER CURRENT PARK LIST ──
+function renderList(){
+  if(S.search) return;
+  const c = document.getElementById('content');
+  const downN = S.rides.filter(r => r.status === 'down').length;
+  let rides = [...S.rides];
+  if(S.filter === 'open') rides = rides.filter(r => r.status === 'open');
+  if(S.filter === 'down') rides = rides.filter(r => r.status === 'down');
+  const rank = {down:0, refurb:1, open:2};
+  rides.sort((a,b) => rank[a.status] !== rank[b.status] ? rank[a.status]-rank[b.status] : b.wait-a.wait);
+
+  let html = '';
+  if(S.filter === 'all' && S.lands.length > 0){
+    S.lands.forEach(land => {
+      const lr = rides.filter(r => r.land === land);
+      if(!lr.length) return;
+      html += `<div class="land-hdr">${land}</div>`;
+      html += lr.map(r => rideHTML(r)).join('');
     });
-    // Any rides not in a land group
-    const other=rides.filter(r=>!S.lands.includes(r.land));
+    const other = rides.filter(r => !S.lands.includes(r.land));
     if(other.length){
-      html+=`<div class="land-hdr">Other</div>`;
-      html+=other.map(rideHTML).join('');
+      html += `<div class="land-hdr">Other</div>`;
+      html += other.map(r => rideHTML(r)).join('');
     }
   } else {
-    html=rides.map(rideHTML).join('');
+    html = rides.map(r => rideHTML(r)).join('');
   }
 
-  c.innerHTML=`
+  c.innerHTML = `
     <div class="fbar">
       <button class="fb ${S.filter==='all'?'on':''}" onclick="setF('all')">All Rides</button>
       <button class="fb ${S.filter==='open'?'on':''}" onclick="setF('open')">🟢 Open</button>
       <button class="fb dn ${S.filter==='down'?'on':''}" onclick="setF('down')">🔴 Down${downN?' ('+downN+')':''}</button>
     </div>
-    ${!rides.length?'<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides match this filter.</div>':''}
+    ${!rides.length ? '<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides match this filter.</div>' : ''}
     ${html}
-    <div class="urow">${S.lastFetch?'Last updated: '+S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}</div>
+    <div class="urow">${S.lastFetch ? 'Last updated: '+S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}</div>
     <div class="pby">Live data: <a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a></div>`;
 
-  rides.filter(r=>r.status==='down').forEach(loadAI);
+  rides.filter(r => r.status === 'down').forEach(loadAI);
   startTimers();
 }
 
+// ── RIDE CARD HTML ──
 function rideHTML(r){
-  const h=r.hist;
-  const ds=S.downSince[r.id];
-  const dm=ds?Math.floor((Date.now()-ds)/60000):0;
-  const relColor=h.rel==='High'?'var(--green)':h.rel==='Low'?'var(--red)':'var(--yellow)';
-  const relLabel=h.rel==='High'?'Reliable':h.rel==='Low'?'Prone to Issues':'Moderate';
-  const dotc=r.status==='open'?'open':r.status==='down'?'down':r.status==='refurb'?'refurb':'unknown';
-  const exp=S.expanded.has(r.id);
+  const h   = r.hist;
+  const ds  = S.downSince[r.id];
+  const dm  = ds ? Math.floor((Date.now() - ds) / 60000) : 0;
+  const relColor = h.rel==='High' ? 'var(--green)' : h.rel==='Low' ? 'var(--red)' : 'var(--yellow)';
+  const relLabel = h.rel==='High' ? 'Reliable'     : h.rel==='Low' ? 'Prone to Issues' : 'Moderate';
+  const dotc     = r.status==='open' ? 'open' : r.status==='down' ? 'down' : r.status==='refurb' ? 'refurb' : 'unknown';
+  const exp      = S.expanded.has(r.id);
 
-  // Right badge
-  let badge='';
-  if(r.status==='open'){
-    const wc=r.wait>=60?'wh':r.wait>=30?'wm':'wl';
-    badge=`<div class="wb ${wc}">${r.wait>0?r.wait+'m':'Open'}</div><div class="wlab">WAIT</div>`;
-  } else if(r.status==='down'){
-    badge=`<div class="wb" style="color:var(--red)">DOWN</div><div class="wlab">STATUS</div>`;
+  // Right wait badge
+  let badge = '';
+  if(r.status === 'open'){
+    const wc = r.wait>=60 ? 'wh' : r.wait>=30 ? 'wm' : 'wl';
+    badge = `<div class="wb ${wc}">${r.wait>0 ? r.wait+'m' : 'Open'}</div><div class="wlab">WAIT</div>`;
+  } else if(r.status === 'down'){
+    badge = `<div class="wb" style="color:var(--red)">DOWN</div><div class="wlab">STATUS</div>`;
   } else {
-    badge=`<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
+    badge = `<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
   }
 
-  // Down detail panel
-  let detail='';
-  if(r.status==='down'){
-    const ai=S.aiCache[r.id];
-    const estRemain=Math.max(0,h.avg-dm);
-    const conf=Math.min(92,Math.max(18,88-dm*1.8));
-    detail=`
+  // Park badge shown when ride has a parkCls (i.e. came from search)
+  const parkBadge = r.parkCls
+    ? `<span class="park-badge ${r.parkCls}">${PARK_EMOJI[r.parkId]||''} ${r.parkName||''}</span>`
+    : '';
+
+  let detail = '';
+
+  if(r.status === 'down'){
+    const ai = S.aiCache[r.id];
+    const estRemain = Math.max(0, h.avg - dm);
+    const conf      = Math.min(92, Math.max(18, 88 - dm * 1.8));
+
+    // Expected back time
+    const expectedTs  = ds ? (ds + h.avg * 60000) : null;
+    const isOverdue   = expectedTs && Date.now() > expectedTs;
+    let   expectedStr = '—';
+    if(expectedTs){
+      expectedStr = isOverdue
+        ? 'Overdue'
+        : '~' + new Date(expectedTs).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    }
+    const expectedColor = isOverdue ? 'var(--yellow)' : 'var(--green)';
+
+    detail = `
     <div class="dp-panel">
       <div class="dp-grid">
         <div class="dp-cell">
@@ -497,28 +632,28 @@ function rideHTML(r){
           <div class="dp-val" style="color:var(--red)" id="tmr-${r.id}">${fmt(dm)}</div>
         </div>
         <div class="dp-cell">
-          <div class="dp-lbl">Hist. Avg Downtime</div>
-          <div class="dp-val" style="color:var(--yellow)">${h.avg}m</div>
+          <div class="dp-lbl">Expected Back</div>
+          <div class="dp-val ${isOverdue?'sm':''}" style="color:${expectedColor}">${expectedStr}</div>
         </div>
       </div>
-      <div class="ai-hdr">AI Estimate — Time Until Reopen</div>
-      ${ai&&ai.text!=null
-        ?`<div class="ai-txt">${ai.text}</div>
-          <div class="conf-wrap"><div class="conf-bar" style="width:${conf.toFixed(0)}%"></div></div>
-          <div class="conf-lbl">${conf.toFixed(0)}% confidence</div>`
-        :`<div class="ai-ld" id="ald-${r.id}"><div class="ms"></div><span>Calculating estimate…</span></div>
-          <div class="ai-txt" id="atx-${r.id}" style="display:none"></div>`}
+      <div class="ai-hdr">Downtime Estimate</div>
+      ${ai && ai.text != null
+        ? `<div class="ai-txt">${ai.text}</div>
+           <div class="conf-wrap"><div class="conf-bar" style="width:${conf.toFixed(0)}%"></div></div>
+           <div class="conf-lbl">${conf.toFixed(0)}% confidence</div>`
+        : `<div class="ai-ld" id="ald-${r.id}"><div class="ms"></div><span>Calculating estimate…</span></div>
+           <div class="ai-txt" id="atx-${r.id}" style="display:none"></div>`}
       <div class="pills">
         <div class="pill">📊 Frequency: ${h.freq}</div>
-        <div class="pill">⏱ Est. back: ~${estRemain>0?estRemain+'m':'Soon'}</div>
+        <div class="pill">⏱ Hist. avg: ${h.avg}m</div>
+        <div class="pill">🔮 Est. back: ~${estRemain>0 ? estRemain+'m' : 'Soon'}</div>
         <div class="pill" style="color:${relColor}">${relLabel}</div>
       </div>
     </div>`;
   }
 
-  // Open tap-to-expand detail
-  if(r.status==='open'&&exp){
-    detail=`
+  if(r.status === 'open' && exp){
+    detail = `
     <div class="op-panel">
       <div class="op-grid">
         <div class="oc"><div class="ol">Wait</div><div class="ov" style="color:var(--green)">${r.wait>0?r.wait+'m':'Open'}</div></div>
@@ -537,6 +672,7 @@ function rideHTML(r){
         <div class="rmeta">
           <span class="rland">${r.land}</span>
           <span style="color:${relColor};font-size:10px;font-weight:600">· ${relLabel}</span>
+          ${parkBadge}
         </div>
       </div>
       <div class="rr">${badge}</div>
@@ -546,97 +682,66 @@ function rideHTML(r){
 }
 
 function toggle(id){
-  const r=S.rides.find(x=>x.id===id);
-  if(!r||r.status==='down') return;
-  S.expanded.has(id)?S.expanded.delete(id):S.expanded.add(id);
-  const el=document.getElementById('rc-'+id);
-  if(el) el.outerHTML=rideHTML(r);
+  const r = S.rides.find(x => x.id === id);
+  if(!r || r.status === 'down') return;
+  S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id);
+  const el = document.getElementById('rc-'+id);
+  if(el) el.outerHTML = rideHTML(r);
 }
 
-function setF(f){ S.filter=f; renderList(); }
+function setF(f){ S.filter = f; renderList(); }
 
 function fmt(m){
-  if(m<1) return '<1m';
-  if(m<60) return m+'m';
+  if(m < 1)  return '<1m';
+  if(m < 60) return m+'m';
   return Math.floor(m/60)+'h '+(m%60)+'m';
 }
 
-// ═══════════════════════════════════════════════════════
-// LIVE DOWN TIMERS
-// ═══════════════════════════════════════════════════════
+// ── LIVE DOWN TIMERS ──
 function startTimers(){
   clearInterval(window._tr);
-  window._tr=setInterval(()=>{
-    Object.entries(S.downSince).forEach(([id,ts])=>{
-      const el=document.getElementById('tmr-'+id);
-      if(el) el.textContent=fmt(Math.floor((Date.now()-ts)/60000));
+  window._tr = setInterval(() => {
+    Object.entries(S.downSince).forEach(([id, ts]) => {
+      const el = document.getElementById('tmr-'+id);
+      if(el) el.textContent = fmt(Math.floor((Date.now()-ts)/60000));
     });
-  },30000);
+  }, 30000);
 }
 
-// ═══════════════════════════════════════════════════════
-// AI ESTIMATE
-// Falls back gracefully to calculated estimate with no API key
-// ═══════════════════════════════════════════════════════
+// ── DOWNTIME ESTIMATE ──
 async function loadAI(ride){
-  if(S.aiCache[ride.id]?.text!=null) return;
-  S.aiCache[ride.id]={text:null};
-  const ds=S.downSince[ride.id];
-  const dm=ds?Math.floor((Date.now()-ds)/60000):0;
-  const h=ride.hist;
-  const remain=Math.max(0,h.avg-dm);
-
-  // Calculated fallback — always works, no API needed
-  const fallback=remain>0
-    ?`Based on historical data, ${ride.name} averages ${h.avg} minutes of downtime. Having been down ${dm} minutes, it should reopen in approximately ${remain} more minutes.`
-    :`${ride.name} has already exceeded its typical ${h.avg}-minute average downtime — reopening could happen any moment, or this may be a longer maintenance event.`;
-
-  try{
-    const res=await fetchWithTimeout('https://api.anthropic.com/v1/messages', 8000);
-    // This will fail without a key — handled below
-    throw new Error('no key');
-  }catch(e){
-    // Use calculated fallback silently
-    setAI(ride.id, fallback);
-    return;
-  }
+  if(S.aiCache[ride.id]?.text != null) return;
+  S.aiCache[ride.id] = {text:null};
+  const ds  = S.downSince[ride.id];
+  const dm  = ds ? Math.floor((Date.now()-ds)/60000) : 0;
+  const h   = ride.hist;
+  const remain = Math.max(0, h.avg - dm);
+  const fallback = remain > 0
+    ? `Based on historical data, ${ride.name} averages ${h.avg} minutes of downtime. Having been down ${dm} minutes, it should reopen in approximately ${remain} more minutes.`
+    : `${ride.name} has already exceeded its typical ${h.avg}-minute average downtime — reopening could happen any moment, or this may be a longer maintenance event.`;
+  setAI(ride.id, fallback);
 }
 
-// Direct AI call — only works when Anthropic API key is available
-async function loadAIDirect(ride, dm, h){
-  try{
-    const res=await fetchWithTimeout('https://api.anthropic.com/v1/messages', 8000);
-    if(!res) throw new Error('fail');
-    const d=await res.json();
-    const txt=d.content?.map(c=>c.text||'').join('')||null;
-    if(txt) setAI(ride.id, txt);
-  }catch(e){ /* fallback already set */ }
+function setAI(id, txt){
+  S.aiCache[id] = {text:txt, ts:Date.now()};
+  const ld = document.getElementById('ald-'+id);
+  const tx = document.getElementById('atx-'+id);
+  if(ld) ld.style.display = 'none';
+  if(tx){ tx.textContent = txt; tx.style.display = 'block'; }
 }
 
-function setAI(id,txt){
-  S.aiCache[id]={text:txt,ts:Date.now()};
-  const ld=document.getElementById('ald-'+id);
-  const tx=document.getElementById('atx-'+id);
-  if(ld) ld.style.display='none';
-  if(tx){tx.textContent=txt;tx.style.display='block';}
-}
-
-// ═══════════════════════════════════════════════════════
-// TOAST
-// ═══════════════════════════════════════════════════════
-function showToast(name,sub){
-  const t=document.getElementById('toast');
-  document.getElementById('t-title').textContent=name+' just went down';
-  document.getElementById('t-sub').textContent=sub;
+// ── TOAST ──
+function showToast(name, sub){
+  const t = document.getElementById('toast');
+  document.getElementById('t-title').textContent = name+' just went down';
+  document.getElementById('t-sub').textContent = sub;
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),5000);
+  setTimeout(() => t.classList.remove('show'), 5000);
 }
 
-// ═══════════════════════════════════════════════════════
-// ERROR STATE
-// ═══════════════════════════════════════════════════════
+// ── ERROR STATE ──
 function showErr(){
-  document.getElementById('content').innerHTML=`
+  document.getElementById('content').innerHTML = `
     <div class="err-box">
       <span style="font-size:18px;flex-shrink:0">⚠️</span>
       <div>
@@ -648,16 +753,14 @@ function showErr(){
     </div>
     <div class="setup-card">
       <div class="sch">🚀 Get It Live in 2 Minutes</div>
-      <div class="scr"><div class="snum">1</div><div>Open your terminal and run:<br><code style="color:var(--gold);font-size:11px">cd ~/Desktop/disney-tracker && vercel --prod --yes</code></div></div>
-      <div class="scr"><div class="snum">2</div><div>Vercel gives you a live https:// URL — open that in Safari</div></div>
+      <div class="scr"><div class="snum">1</div><div>Run in terminal:<br><code style="color:var(--gold);font-size:11px">cd ~/Desktop/disney-tracker && vercel --prod --yes</code></div></div>
+      <div class="scr"><div class="snum">2</div><div>Vercel gives you a live https:// URL — open in Safari</div></div>
       <div class="scr"><div class="snum">3</div><div>Tap Share → Add to Home Screen to install as an app</div></div>
       <div class="scr"><div class="snum">4</div><div>For reliable data, deploy <strong style="color:var(--text)">worker.js</strong> to <strong style="color:var(--text)">dash.cloudflare.com</strong> → Workers</div></div>
     </div>`;
 }
 
-// ═══════════════════════════════════════════════════════
-// BOOT
-// ═══════════════════════════════════════════════════════
+// ── BOOT ──
 fetchPark();
 </script>
 </body>
