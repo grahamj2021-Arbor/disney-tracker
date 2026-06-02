@@ -47,7 +47,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .ptab.hs.active{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.4);color:var(--hs)}
 .ptab.ak.active{background:rgba(167,139,250,.12);border-color:rgba(167,139,250,.4);color:var(--ak)}
 
-/* SEARCH */
+/* GLOBAL SEARCH (header) */
 .search-wrap{position:relative;margin-bottom:10px}
 .search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:13px;pointer-events:none;z-index:1}
 .search-input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:10px;padding:8px 34px 8px 30px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
@@ -72,8 +72,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .content::-webkit-scrollbar{width:3px}
 .content::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 
+/* PER-PARK SEARCH BAR */
+.park-search-wrap{position:relative;margin-bottom:10px}
+.park-search-input{width:100%;background:var(--s2);border:1px solid var(--bd2);border-radius:8px;padding:7px 28px 7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.park-search-input:focus{border-color:rgba(255,215,0,.3)}
+.park-search-input::placeholder{color:var(--t3)}
+.park-search-clr{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer;font-size:14px;line-height:1;padding:2px;-webkit-tap-highlight-color:transparent}
+
 /* FILTER BAR */
-.fbar{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;align-items:center}
+.fbar{display:flex;gap:5px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;align-items:center}
 .fbar::-webkit-scrollbar{display:none}
 .fb{flex-shrink:0;padding:5px 12px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .fb.on{background:var(--s3);color:var(--text)}
@@ -247,15 +254,12 @@ const PARK_CLS   = {6:'mk', 5:'ep', 7:'hs', 8:'ak'};
 const PARK_EMOJI = {6:'🏰', 5:'🌍', 7:'🎬', 8:'🦁'};
 
 // ── THEMEPARKS.WIKI ENTITY IDs ──
-// MK and EPCOT confirmed; HS and AK discovered dynamically from WDW destination
 const TPW_IDS = {
   6: '75ea578a-adc8-4116-a54d-dccb60765ef9',  // Magic Kingdom — confirmed
   5: '288747d1-8b4f-4a64-867e-ea7c9b27bad8',  // EPCOT — confirmed
-  // 7 (Hollywood Studios) and 8 (Animal Kingdom) loaded via discoverTPWIds()
 };
-const WDW_DEST_ID = 'e957da41-3552-4cf6-b636-5babc5cbc4e5';
-// Keywords for matching discovered parks to our park IDs
-const TPW_KEYWORDS = {7:['hollywood'], 8:['animal kingdom']};
+const WDW_DEST_ID   = 'e957da41-3552-4cf6-b636-5babc5cbc4e5';
+const TPW_KEYWORDS  = {7:['hollywood'], 8:['animal kingdom']};
 
 // ── MEET & GREET FILTER ──
 const MG_KEYWORDS = [
@@ -303,7 +307,6 @@ const HIST = {
   'Guardians of the Galaxy':                     {avg:38,freq:'High',rel:'Low'},
   _default:                                      {avg:20,freq:'Med', rel:'Med'},
 };
-
 function getH(name){
   if(HIST[name]) return HIST[name];
   const low = name.toLowerCase();
@@ -315,14 +318,33 @@ function getH(name){
 
 // ── STATE ──
 const S = {
-  park:6, filter:'all', search:'',
+  park:6, filter:'all', search:'', parkSearch:'',
   rides:[], lands:[],
   downSince:{}, aiCache:{}, expanded:new Set(),
   prevDown:new Set(), lastFetch:null,
   refreshTimer:null, countdownTimer:null, nextRefresh:null,
-  parkCache:{},   // {parkId: {data, tpwLive, ts}}
-  tpwReady:false, // whether ThemeParks.wiki is available
+  parkCache:{},
+  tpwReady:false,
 };
+
+// ── DOWNSINCE PERSISTENCE ──
+// Persists ride downtime start times across page reloads via localStorage.
+// Keyed per park so switching parks doesn't mix data.
+function saveDownSince(){
+  try{
+    localStorage.setItem('ds_'+S.park, JSON.stringify(S.downSince));
+  }catch(e){}
+}
+
+function loadDownSince(parkId){
+  try{
+    const data = JSON.parse(localStorage.getItem('ds_'+parkId)||'{}');
+    const cutoff = Date.now() - 86400000; // discard anything >24h old
+    Object.entries(data).forEach(([id, ts]) => {
+      if(ts > cutoff) S.downSince[+id] = ts;
+    });
+  }catch(e){}
+}
 
 // ── FETCH HELPERS ──
 function fetchWithTimeout(url, ms){
@@ -334,7 +356,6 @@ function fetchWithTimeout(url, ms){
   });
 }
 
-// Fetch raw Queue-Times.com data for a park
 async function fetchQTData(parkId){
   const qtUrl = QT(parkId);
   const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
@@ -353,190 +374,149 @@ async function fetchQTData(parkId){
   return null;
 }
 
-// Fetch ThemeParks.wiki live data for a park (via worker proxy)
 async function fetchTPWLive(parkId){
   const entityId = TPW_IDS[parkId];
   if(!entityId) return null;
   const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
   if(!workerReady) return null;
   try{
-    const url = WORKER + '?tpw=' + entityId + '&sub=live';
-    const res = await fetchWithTimeout(url, 10000);
+    const res = await fetchWithTimeout(WORKER+'?tpw='+entityId+'&sub=live', 10000);
     if(!res.ok) return null;
     const data = await res.json();
-    // Validate it's the right park by checking name matches
     if(data.name){
       const keyword = PARK_NAMES[parkId].toLowerCase().split(' ')[0];
       if(!data.name.toLowerCase().includes(keyword)) return null;
     }
     return Array.isArray(data.liveData) ? data.liveData : null;
-  }catch(e){
-    return null;
-  }
+  }catch(e){ return null; }
 }
 
-// Discover HS and AK entity IDs from WDW destination children
 async function discoverTPWIds(){
-  // Load valid (non-null) IDs from localStorage cache (valid 24 hours)
   try{
-    const cached = JSON.parse(localStorage.getItem('tpw_ids') || '{}');
-    if(cached.ts && Date.now() - cached.ts < 86400000 && cached.ids){
-      // Only assign IDs that are actually valid UUIDs — don't assign nulls
-      Object.entries(cached.ids).forEach(([k, v]) => {
-        if(v && typeof v === 'string' && v.length > 10) TPW_IDS[+k] = v;
+    const cached = JSON.parse(localStorage.getItem('tpw_ids')||'{}');
+    if(cached.ts && Date.now()-cached.ts < 86400000 && cached.ids){
+      Object.entries(cached.ids).forEach(([k,v])=>{
+        if(v && typeof v==='string' && v.length>10) TPW_IDS[+k]=v;
       });
-      if(TPW_IDS[7] && TPW_IDS[8]) return; // Cache gave us everything we need
+      if(TPW_IDS[7] && TPW_IDS[8]) return;
     }
   }catch(e){}
-
-  if(TPW_IDS[7] && TPW_IDS[8]) return; // Already have all IDs
-
+  if(TPW_IDS[7] && TPW_IDS[8]) return;
   const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
   if(!workerReady) return;
-
   try{
-    const url = WORKER + '?tpw=' + WDW_DEST_ID + '&sub=children';
-    const res = await fetchWithTimeout(url, 10000);
+    const res = await fetchWithTimeout(WORKER+'?tpw='+WDW_DEST_ID+'&sub=children', 10000);
     if(!res.ok) return;
     const data = await res.json();
-    // Children may be nested differently depending on API version
-    const children = data.children || data.parks || data.entities ||
-                     (Array.isArray(data) ? data : []);
-    children.forEach(child => {
-      const name = (child.name || '').toLowerCase();
-      for(const [qtId, patterns] of Object.entries(TPW_KEYWORDS)){
-        if(!TPW_IDS[+qtId] && child.id && patterns.some(p => name.includes(p))){
-          TPW_IDS[+qtId] = child.id;
+    const children = data.children||data.parks||data.entities||(Array.isArray(data)?data:[]);
+    children.forEach(child=>{
+      const name=(child.name||'').toLowerCase();
+      for(const [qtId,patterns] of Object.entries(TPW_KEYWORDS)){
+        if(!TPW_IDS[+qtId] && child.id && patterns.some(p=>name.includes(p))){
+          TPW_IDS[+qtId]=child.id;
         }
       }
     });
-    // Only cache if we actually found valid IDs — don't cache failures
-    if(TPW_IDS[7] || TPW_IDS[8]){
-      localStorage.setItem('tpw_ids', JSON.stringify({
-        ids:{7:TPW_IDS[7]||null, 8:TPW_IDS[8]||null},
-        ts:Date.now()
+    if(TPW_IDS[7]||TPW_IDS[8]){
+      localStorage.setItem('tpw_ids',JSON.stringify({
+        ids:{7:TPW_IDS[7]||null,8:TPW_IDS[8]||null},ts:Date.now()
       }));
     }
   }catch(e){}
 }
 
-// ── RIDE NAME NORMALIZATION (for cross-source matching) ──
+// ── NAME NORMALIZATION & MERGE ──
 function normName(n){
-  return n.toLowerCase()
-    .replace(/[™®©★]/g, '')
-    .replace(/[^a-z0-9]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return n.toLowerCase().replace(/[™®©★]/g,'').replace(/[^a-z0-9]/g,' ').replace(/\s+/g,' ').trim();
 }
 
-// ── MERGE Queue-Times + ThemeParks.wiki DATA ──
 function mergeRideData(qtRides, tpwLive){
-  if(!tpwLive || !tpwLive.length) return qtRides;
-
-  // Build TPW lookup by normalized name (attractions only)
-  const tpwMap = {};
-  tpwLive.forEach(t => {
-    if(t.entityType === 'ATTRACTION' || !t.entityType){
-      tpwMap[normName(t.name)] = t;
-    }
+  if(!tpwLive||!tpwLive.length) return qtRides;
+  const tpwMap={};
+  tpwLive.forEach(t=>{
+    if(t.entityType==='ATTRACTION'||!t.entityType) tpwMap[normName(t.name)]=t;
   });
-
-  S.tpwReady = true;
-
-  return qtRides.map(r => {
-    const tpw = tpwMap[normName(r.name)];
-    if(!tpw) return r; // No TPW match — use QT data as-is
-
-    const tpwIsOpen = tpw.status === 'OPERATING';
-    const tpwWait   = tpw.queue?.STANDBY?.waitTime ?? null;
-    const qtIsOpen  = r.status === 'open';
-
-    // Both open — average wait times, flag if they differ notably
-    if(qtIsOpen && tpwIsOpen){
-      let wait = r.wait;
-      let verified = 'agree';
-      if(tpwWait !== null && r.wait > 0){
-        wait = Math.round((r.wait + tpwWait) / 2);
-        if(Math.abs(r.wait - tpwWait) > 15) verified = 'diff';
-      } else if(tpwWait !== null && r.wait === 0){
-        wait = tpwWait;
-      }
-      return {...r, wait, tpwWait, verified};
+  S.tpwReady=true;
+  return qtRides.map(r=>{
+    const tpw=tpwMap[normName(r.name)];
+    if(!tpw) return r;
+    const tpwIsOpen=tpw.status==='OPERATING';
+    const tpwWait=tpw.queue?.STANDBY?.waitTime??null;
+    const qtIsOpen=r.status==='open';
+    if(qtIsOpen&&tpwIsOpen){
+      let wait=r.wait, verified='agree';
+      if(tpwWait!==null&&r.wait>0){
+        wait=Math.round((r.wait+tpwWait)/2);
+        if(Math.abs(r.wait-tpwWait)>15) verified='diff';
+      }else if(tpwWait!==null&&r.wait===0){ wait=tpwWait; }
+      return {...r,wait,tpwWait,verified};
     }
-
-    // Status conflict — trust the more conservative (DOWN wins)
-    if(qtIsOpen !== tpwIsOpen){
-      const conservativeStatus = qtIsOpen ? 'down' : r.status;
-      // Also set isOpen:false so this ride isn't counted in avg wait calculation
-      return {...r, status:conservativeStatus, isOpen:false, tpwWait, tpwStatus:tpw.status, verified:'conflict'};
+    if(qtIsOpen!==tpwIsOpen){
+      const conservativeStatus=qtIsOpen?'down':r.status;
+      return {...r,status:conservativeStatus,isOpen:false,tpwWait,tpwStatus:tpw.status,verified:'conflict'};
     }
-
-    // Both closed/down — agreement
-    return {...r, tpwStatus:tpw.status, verified:'agree'};
+    return {...r,tpwStatus:tpw.status,verified:'agree'};
   });
 }
 
-// ── EXTRACT RIDES from raw QT data ──
+// ── EXTRACT RIDES ──
+// Captures last_updated from API so we can use it as the true downtime start
 function extractRides(data){
-  const rides = [], lands = [];
-  function add(list, landName){
-    list.forEach(r => {
+  const rides=[],lands=[];
+  function add(list,landName){
+    list.forEach(r=>{
       if(isMeetGreet(r.name)) return;
-      let status = 'open';
+      let status='open';
       if(!r.is_open){
-        const age = r.last_updated ? (Date.now() - new Date(r.last_updated).getTime()) : 0;
-        status = age > 3 * 60 * 60 * 1000 ? 'refurb' : 'down';
+        const age=r.last_updated?(Date.now()-new Date(r.last_updated).getTime()):0;
+        status=age>3*60*60*1000?'refurb':'down';
       }
-      rides.push({id:r.id, name:r.name, land:landName, isOpen:r.is_open,
-        wait:r.wait_time||0, hist:getH(r.name), status});
+      rides.push({
+        id:r.id, name:r.name, land:landName, isOpen:r.is_open,
+        wait:r.wait_time||0, hist:getH(r.name), status,
+        lastUpdated:r.last_updated||null, // preserve for downtime tracking
+      });
     });
   }
-  if(data.lands) data.lands.forEach(l => {
-    if(l.rides?.length){ lands.push(l.name); add(l.rides, l.name); }
+  if(data.lands) data.lands.forEach(l=>{
+    if(l.rides?.length){lands.push(l.name);add(l.rides,l.name);}
   });
-  if(data.rides?.length) add(data.rides, 'General');
-  return {rides, lands:[...new Set(lands)]};
+  if(data.rides?.length) add(data.rides,'General');
+  return {rides,lands:[...new Set(lands)]};
 }
 
-// ── MAIN PARK FETCH (both sources in parallel) ──
+// ── MAIN PARK FETCH ──
 async function fetchPark(){
-  const lbl = document.getElementById('llbl');
-  if(lbl) lbl.textContent = 'UPDATING';
-
-  // Fetch Queue-Times.com and ThemeParks.wiki simultaneously
-  const [qtData, tpwLive] = await Promise.all([
-    fetchQTData(S.park),
-    fetchTPWLive(S.park),
-  ]);
-
+  const lbl=document.getElementById('llbl');
+  if(lbl) lbl.textContent='UPDATING';
+  const [qtData,tpwLive]=await Promise.all([fetchQTData(S.park),fetchTPWLive(S.park)]);
   if(!qtData){
-    if(lbl) lbl.textContent = 'RETRY';
+    if(lbl) lbl.textContent='RETRY';
     if(!S.rides.length) showErr();
     scheduleRefresh(30000);
     return;
   }
-
-  S.parkCache[S.park] = {data:qtData, tpwLive, ts:Date.now()};
-  processData(qtData, tpwLive);
-  S.lastFetch = new Date();
-  if(lbl) lbl.textContent = 'LIVE';
-  if(S.search){ searchAllParks(S.search); } else { renderList(); }
+  S.parkCache[S.park]={data:qtData,tpwLive,ts:Date.now()};
+  processData(qtData,tpwLive);
+  S.lastFetch=new Date();
+  if(lbl) lbl.textContent='LIVE';
+  if(S.search){ searchAllParks(S.search); }else{ renderList(); }
   scheduleRefresh(REFRESH_MS);
 }
 
 function scheduleRefresh(ms){
   clearTimeout(S.refreshTimer);
   clearInterval(S.countdownTimer);
-  S.nextRefresh = Date.now() + ms;
-  S.refreshTimer = setTimeout(fetchPark, ms);
+  S.nextRefresh=Date.now()+ms;
+  S.refreshTimer=setTimeout(fetchPark,ms);
   function tick(){
-    const rem = Math.max(0, Math.ceil((S.nextRefresh - Date.now()) / 1000));
-    const m = Math.floor(rem/60), sec = rem%60;
-    const el = document.getElementById('countdown');
-    if(el) el.textContent = `Next refresh: ${m}:${sec.toString().padStart(2,'0')}`;
+    const rem=Math.max(0,Math.ceil((S.nextRefresh-Date.now())/1000));
+    const m=Math.floor(rem/60),sec=rem%60;
+    const el=document.getElementById('countdown');
+    if(el) el.textContent=`Next refresh: ${m}:${sec.toString().padStart(2,'0')}`;
   }
   tick();
-  S.countdownTimer = setInterval(tick, 1000);
+  S.countdownTimer=setInterval(tick,1000);
 }
 
 function manualRefresh(){
@@ -546,255 +526,265 @@ function manualRefresh(){
 }
 
 // ── PROCESS DATA ──
-function processData(qtData, tpwLive){
-  S.tpwReady = false; // reset per-park; mergeRideData sets it true if TPW data is used
-  let {rides:all, lands} = extractRides(qtData);
-  // Merge with ThemeParks.wiki for cross-verified data
-  all = mergeRideData(all, tpwLive);
+function processData(qtData,tpwLive){
+  S.tpwReady=false;
+  let {rides:all,lands}=extractRides(qtData);
+  all=mergeRideData(all,tpwLive);
 
-  const nowDown = new Set();
-  all.forEach(r => { if(r.status === 'down') nowDown.add(r.id); });
+  const nowDown=new Set();
+  const now=Date.now();
 
-  nowDown.forEach(id => {
-    if(!S.prevDown.has(id) && S.rides.length > 0){
-      const r = all.find(x => x.id === id);
-      if(r) showToast(r.name, 'Just went offline');
+  all.forEach(r=>{
+    if(r.status!=='down') return;
+    nowDown.add(r.id);
+    if(!S.downSince[r.id]){
+      // Use the API's last_updated timestamp as the true downtime start.
+      // queue-times.com stamps this when the ride status last changed,
+      // so it gives a far more accurate "down for" duration than "now".
+      const apiTs=r.lastUpdated?new Date(r.lastUpdated).getTime():null;
+      S.downSince[r.id]=(apiTs&&apiTs<now&&now-apiTs<86400000)?apiTs:now;
     }
-    if(!S.downSince[id]) S.downSince[id] = Date.now();
+    // Toast alert only for rides that are newly down in this refresh
+    if(!S.prevDown.has(r.id)&&S.rides.length>0){
+      showToast(r.name,'Just went offline');
+    }
   });
-  Object.keys(S.downSince).forEach(id => {
+
+  // Remove tracking for rides no longer down
+  Object.keys(S.downSince).forEach(id=>{
     if(!nowDown.has(+id)) delete S.downSince[id];
   });
 
-  S.prevDown = nowDown;
-  S.rides    = all;
-  S.lands    = lands;
+  S.prevDown=nowDown;
+  S.rides=all;
+  S.lands=lands;
 
-  const open  = all.filter(r => r.status === 'open').length;
-  const down  = all.filter(r => r.status === 'down').length;
-  const waits = all.filter(r => r.isOpen && r.wait > 0).map(r => r.wait);
-  const avg   = waits.length ? Math.round(waits.reduce((a,b) => a+b) / waits.length) : 0;
-  document.getElementById('s-open').textContent = open;
-  document.getElementById('s-down').textContent = down;
-  document.getElementById('s-wait').textContent = avg ? avg+'m' : '—';
+  // Persist downtime data so it survives page reloads
+  saveDownSince();
+
+  const open =all.filter(r=>r.status==='open').length;
+  const down =all.filter(r=>r.status==='down').length;
+  const waits=all.filter(r=>r.isOpen&&r.wait>0).map(r=>r.wait);
+  const avg  =waits.length?Math.round(waits.reduce((a,b)=>a+b)/waits.length):0;
+  document.getElementById('s-open').textContent=open;
+  document.getElementById('s-down').textContent=down;
+  document.getElementById('s-wait').textContent=avg?avg+'m':'—';
 }
 
 // ── PARK SELECT ──
-function selPark(id, cls, btn){
-  S.park = id;
-  S.rides = []; S.lands = []; S.downSince = {}; S.aiCache = {};
-  S.expanded = new Set(); S.prevDown = new Set();
-  S.filter = 'all'; S.tpwReady = false;
-  document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
+function selPark(id,cls,btn){
+  S.park=id;
+  S.rides=[];S.lands=[];S.downSince={};S.aiCache={};
+  S.expanded=new Set();S.prevDown=new Set();
+  S.filter='all';S.tpwReady=false;S.parkSearch='';
+  // Restore any previously tracked downtime for this park
+  loadDownSince(id);
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   if(!S.search){
-    document.getElementById('content').innerHTML =
+    document.getElementById('content').innerHTML=
       '<div class="lscr"><div class="bspin"></div><div class="ltxt">Loading…</div></div>';
-    document.getElementById('s-open').textContent = '—';
-    document.getElementById('s-down').textContent = '—';
-    document.getElementById('s-wait').textContent = '—';
+    document.getElementById('s-open').textContent='—';
+    document.getElementById('s-down').textContent='—';
+    document.getElementById('s-wait').textContent='—';
   }
   fetchPark();
 }
 
-// ── SEARCH ──
+// ── GLOBAL SEARCH ──
 let _searchTimer;
 function handleSearch(q){
-  S.search = (q || '').trim();
-  const clr = document.getElementById('search-clear');
-  if(clr) clr.classList.toggle('vis', !!S.search);
+  S.search=(q||'').trim();
+  const clr=document.getElementById('search-clear');
+  if(clr) clr.classList.toggle('vis',!!S.search);
   clearTimeout(_searchTimer);
-  if(!S.search){ renderList(); return; }
-  // Instantly show current-park matches
-  const instant = S.rides
-    .filter(r => r.name.toLowerCase().includes(S.search.toLowerCase()))
-    .map(r => ({...r, parkId:S.park, parkName:PARK_NAMES[S.park], parkCls:PARK_CLS[S.park]}));
-  renderSearchResults(instant, true);
-  _searchTimer = setTimeout(() => searchAllParks(S.search), 350);
+  if(!S.search){renderList();return;}
+  const instant=S.rides
+    .filter(r=>r.name.toLowerCase().includes(S.search.toLowerCase()))
+    .map(r=>({...r,parkId:S.park,parkName:PARK_NAMES[S.park],parkCls:PARK_CLS[S.park]}));
+  renderSearchResults(instant,true);
+  _searchTimer=setTimeout(()=>searchAllParks(S.search),350);
 }
 
 async function searchAllParks(q){
-  if(S.search !== q) return;
-  const now = Date.now();
-  const TTL = 2 * 60 * 1000;
-
-  const fetches = PARK_IDS.map(async pid => {
-    const cached = S.parkCache[pid];
-    if(cached && now - cached.ts < TTL) return {pid, cached};
-    const [qtData, tpwLive] = await Promise.all([
-      fetchQTData(pid),
-      fetchTPWLive(pid),
-    ]);
-    if(qtData) S.parkCache[pid] = {data:qtData, tpwLive, ts:now};
-    return {pid, cached: S.parkCache[pid]};
+  if(S.search!==q) return;
+  const now=Date.now(),TTL=2*60*1000;
+  const fetches=PARK_IDS.map(async pid=>{
+    const cached=S.parkCache[pid];
+    if(cached&&now-cached.ts<TTL) return {pid,cached};
+    const [qtData,tpwLive]=await Promise.all([fetchQTData(pid),fetchTPWLive(pid)]);
+    if(qtData) S.parkCache[pid]={data:qtData,tpwLive,ts:now};
+    return {pid,cached:S.parkCache[pid]};
   });
-
-  const results = await Promise.all(fetches);
-  if(S.search !== q) return;
-
-  const ql = q.toLowerCase();
-  const matches = [];
-  results.forEach(({pid, cached}) => {
+  const results=await Promise.all(fetches);
+  if(S.search!==q) return;
+  const ql=q.toLowerCase(),matches=[];
+  results.forEach(({pid,cached})=>{
     if(!cached) return;
-    let {rides} = extractRides(cached.data);
-    rides = mergeRideData(rides, cached.tpwLive);
-    rides
-      .filter(r => r.name.toLowerCase().includes(ql))
-      .forEach(r => matches.push({...r, parkId:pid, parkName:PARK_NAMES[pid], parkCls:PARK_CLS[pid]}));
+    let {rides}=extractRides(cached.data);
+    rides=mergeRideData(rides,cached.tpwLive);
+    rides.filter(r=>r.name.toLowerCase().includes(ql))
+      .forEach(r=>matches.push({...r,parkId:pid,parkName:PARK_NAMES[pid],parkCls:PARK_CLS[pid]}));
   });
-
-  renderSearchResults(matches, false);
+  renderSearchResults(matches,false);
 }
 
-function renderSearchResults(matches, loading){
-  const c = document.getElementById('content');
-  const rank = {down:0, refurb:1, open:2};
-
-  let html = '';
-  PARK_IDS.forEach(pid => {
-    const pr = matches
-      .filter(r => r.parkId === pid)
-      .sort((a,b) => rank[a.status] !== rank[b.status] ? rank[a.status]-rank[b.status] : b.wait-a.wait);
+function renderSearchResults(matches,loading){
+  const c=document.getElementById('content');
+  const rank={down:0,refurb:1,open:2};
+  let html='';
+  PARK_IDS.forEach(pid=>{
+    const pr=matches.filter(r=>r.parkId===pid)
+      .sort((a,b)=>rank[a.status]!==rank[b.status]?rank[a.status]-rank[b.status]:b.wait-a.wait);
     if(!pr.length) return;
-    html += `<div class="land-hdr">${PARK_EMOJI[pid]} ${PARK_NAMES[pid]}</div>`;
-    html += pr.map(r => rideHTML(r)).join('');
+    html+=`<div class="land-hdr">${PARK_EMOJI[pid]} ${PARK_NAMES[pid]}</div>`;
+    html+=pr.map(r=>rideHTML(r)).join('');
   });
-
-  const suffix = loading
-    ? ' <span style="color:var(--t3);font-size:10px">searching all parks…</span>'
-    : '';
-  c.innerHTML = `
+  const suffix=loading?' <span style="color:var(--t3);font-size:10px">searching all parks…</span>':'';
+  c.innerHTML=`
     <div class="fbar">
       <span style="font-size:12px;color:var(--t2);display:flex;align-items:center;flex-wrap:wrap;gap:4px">
         <span style="color:var(--text);font-weight:700">${matches.length}</span>
-        ride${matches.length !== 1 ? 's' : ''} found${suffix}
+        ride${matches.length!==1?'s':''} found${suffix}
       </span>
     </div>
-    ${!matches.length && !loading ? `<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides matching "${S.search}"</div>` : ''}
+    ${!matches.length&&!loading?`<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides matching "${S.search}"</div>`:''}
     ${html}`;
-
-  matches.filter(r => r.status === 'down').forEach(loadAI);
+  matches.filter(r=>r.status==='down').forEach(loadAI);
   startTimers();
 }
 
 function clearSearch(){
-  S.search = '';
-  const inp = document.getElementById('search-input');
-  if(inp){ inp.value = ''; inp.blur(); }
+  S.search='';
+  const inp=document.getElementById('search-input');
+  if(inp){inp.value='';inp.blur();}
   document.getElementById('search-clear')?.classList.remove('vis');
   clearTimeout(_searchTimer);
   renderList();
 }
 
+// ── PER-PARK SEARCH ──
+function setParkSearch(q){
+  S.parkSearch=(q||'');
+  renderList();
+  // Restore focus and cursor after re-render
+  const inp=document.querySelector('.park-search-input');
+  if(inp){
+    inp.focus();
+    const l=inp.value.length;
+    try{inp.setSelectionRange(l,l);}catch(_){}
+  }
+}
+
 // ── RENDER CURRENT PARK ──
 function renderList(){
   if(S.search) return;
-  const c = document.getElementById('content');
-  const downN = S.rides.filter(r => r.status === 'down').length;
-  let rides = [...S.rides];
-  if(S.filter === 'open') rides = rides.filter(r => r.status === 'open');
-  if(S.filter === 'down') rides = rides.filter(r => r.status === 'down');
-  const rank = {down:0, refurb:1, open:2};
-  rides.sort((a,b) => rank[a.status] !== rank[b.status] ? rank[a.status]-rank[b.status] : b.wait-a.wait);
+  const c=document.getElementById('content');
+  const downN=S.rides.filter(r=>r.status==='down').length;
 
-  let html = '';
-  if(S.filter === 'all' && S.lands.length > 0){
-    S.lands.forEach(land => {
-      const lr = rides.filter(r => r.land === land);
-      if(!lr.length) return;
-      html += `<div class="land-hdr">${land}</div>`;
-      html += lr.map(r => rideHTML(r)).join('');
-    });
-    const other = rides.filter(r => !S.lands.includes(r.land));
-    if(other.length){
-      html += `<div class="land-hdr">Other</div>`;
-      html += other.map(r => rideHTML(r)).join('');
-    }
-  } else {
-    html = rides.map(r => rideHTML(r)).join('');
+  let rides=[...S.rides];
+
+  // Apply per-park search filter first
+  if(S.parkSearch){
+    const pq=S.parkSearch.toLowerCase();
+    rides=rides.filter(r=>r.name.toLowerCase().includes(pq));
   }
 
-  const srcNote = S.tpwReady
-    ? `<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a> + <a href="https://themeparks.wiki" target="_blank" rel="noopener">ThemeParks.wiki</a>`
-    : `<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a>`;
+  if(S.filter==='open') rides=rides.filter(r=>r.status==='open');
+  if(S.filter==='down') rides=rides.filter(r=>r.status==='down');
 
-  c.innerHTML = `
+  const rank={down:0,refurb:1,open:2};
+  rides.sort((a,b)=>rank[a.status]!==rank[b.status]?rank[a.status]-rank[b.status]:b.wait-a.wait);
+
+  let html='';
+  if(!S.parkSearch&&S.filter==='all'&&S.lands.length>0){
+    S.lands.forEach(land=>{
+      const lr=rides.filter(r=>r.land===land);
+      if(!lr.length) return;
+      html+=`<div class="land-hdr">${land}</div>`;
+      html+=lr.map(r=>rideHTML(r)).join('');
+    });
+    const other=rides.filter(r=>!S.lands.includes(r.land));
+    if(other.length){html+=`<div class="land-hdr">Other</div>`;html+=other.map(r=>rideHTML(r)).join('');}
+  }else{
+    html=rides.map(r=>rideHTML(r)).join('');
+  }
+
+  const srcNote=S.tpwReady
+    ?`<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a> + <a href="https://themeparks.wiki" target="_blank" rel="noopener">ThemeParks.wiki</a>`
+    :`<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a>`;
+
+  const parkName=PARK_NAMES[S.park];
+  c.innerHTML=`
+    <div class="park-search-wrap">
+      <input type="text" class="park-search-input"
+        placeholder="Search ${parkName} rides…"
+        value="${S.parkSearch.replace(/"/g,'&quot;')}"
+        oninput="setParkSearch(this.value)"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      ${S.parkSearch?`<button class="park-search-clr" onclick="setParkSearch('')">✕</button>`:''}
+    </div>
     <div class="fbar">
       <button class="fb ${S.filter==='all'?'on':''}" onclick="setF('all')">All Rides</button>
       <button class="fb ${S.filter==='open'?'on':''}" onclick="setF('open')">🟢 Open</button>
       <button class="fb dn ${S.filter==='down'?'on':''}" onclick="setF('down')">🔴 Down${downN?' ('+downN+')':''}</button>
     </div>
-    ${!rides.length ? '<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides match this filter.</div>' : ''}
+    ${!rides.length?`<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">${S.parkSearch?`No rides matching "${S.parkSearch}"` : 'No rides match this filter.'}</div>`:''}
     ${html}
-    <div class="urow">${S.lastFetch ? 'Last updated: '+S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}</div>
+    <div class="urow">${S.lastFetch?'Last updated: '+S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}):''}</div>
     <div class="pby">Live data: ${srcNote}</div>`;
 
-  rides.filter(r => r.status === 'down').forEach(loadAI);
+  rides.filter(r=>r.status==='down').forEach(loadAI);
   startTimers();
 }
 
 // ── RIDE CARD HTML ──
 function rideHTML(r){
-  const h   = r.hist;
-  const ds  = S.downSince[r.id];
-  const dm  = ds ? Math.floor((Date.now() - ds) / 60000) : 0;
-  const relColor = h.rel==='High' ? 'var(--green)' : h.rel==='Low' ? 'var(--red)' : 'var(--yellow)';
-  const relLabel = h.rel==='High' ? 'Reliable'     : h.rel==='Low' ? 'Prone to Issues' : 'Moderate';
-  const dotc     = r.status==='open' ? 'open' : r.status==='down' ? 'down' : r.status==='refurb' ? 'refurb' : 'unknown';
-  const exp      = S.expanded.has(r.id);
+  const h=r.hist;
+  const ds=S.downSince[r.id];
+  const dm=ds?Math.floor((Date.now()-ds)/60000):0;
+  const relColor=h.rel==='High'?'var(--green)':h.rel==='Low'?'var(--red)':'var(--yellow)';
+  const relLabel=h.rel==='High'?'Reliable':h.rel==='Low'?'Prone to Issues':'Moderate';
+  const dotc=r.status==='open'?'open':r.status==='down'?'down':r.status==='refurb'?'refurb':'unknown';
+  const exp=S.expanded.has(r.id);
 
-  // Source verification badge
-  let srcBadge = '';
-  if(r.verified === 'agree' && r.tpwWait !== undefined){
-    srcBadge = `<span class="src src-ok" title="Both sources agree">✓</span>`;
-  } else if(r.verified === 'agree' && r.tpwStatus !== undefined){
-    srcBadge = `<span class="src src-ok" title="Both sources confirm status">✓</span>`;
-  } else if(r.verified === 'diff'){
-    srcBadge = `<span class="src src-diff" title="QT: ${r.wait}m · TPW: ${r.tpwWait}m — showing average">≈</span>`;
-  } else if(r.verified === 'conflict'){
-    srcBadge = `<span class="src src-conflict" title="Sources disagree — showing as down to be safe">⚠</span>`;
+  let srcBadge='';
+  if(r.verified==='agree'&&(r.tpwWait!==undefined||r.tpwStatus!==undefined)){
+    srcBadge=`<span class="src src-ok" title="Both sources agree">✓</span>`;
+  }else if(r.verified==='diff'){
+    srcBadge=`<span class="src src-diff" title="QT: ${r.wait}m · TPW: ${r.tpwWait}m — showing average">≈</span>`;
+  }else if(r.verified==='conflict'){
+    srcBadge=`<span class="src src-conflict" title="Sources disagree — showing as down to be safe">⚠</span>`;
   }
 
-  // Park badge (shown in search results only)
-  const parkBadge = r.parkCls
-    ? `<span class="park-badge ${r.parkCls}">${PARK_EMOJI[r.parkId]||''} ${r.parkName||''}</span>`
-    : '';
+  const parkBadge=r.parkCls
+    ?`<span class="park-badge ${r.parkCls}">${PARK_EMOJI[r.parkId]||''} ${r.parkName||''}</span>`:'';
 
-  // Right wait badge
-  let badge = '';
-  if(r.status === 'open'){
-    const wc = r.wait>=60 ? 'wh' : r.wait>=30 ? 'wm' : 'wl';
-    badge = `<div class="wb ${wc}">${r.wait>0 ? r.wait+'m' : 'Open'}</div><div class="wlab">WAIT</div>`;
-  } else if(r.status === 'down'){
-    badge = `<div class="wb" style="color:var(--red)">DOWN</div><div class="wlab">STATUS</div>`;
-  } else {
-    badge = `<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
+  let badge='';
+  if(r.status==='open'){
+    const wc=r.wait>=60?'wh':r.wait>=30?'wm':'wl';
+    badge=`<div class="wb ${wc}">${r.wait>0?r.wait+'m':'Open'}</div><div class="wlab">WAIT</div>`;
+  }else if(r.status==='down'){
+    badge=`<div class="wb" style="color:var(--red)">DOWN</div><div class="wlab">STATUS</div>`;
+  }else{
+    badge=`<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
   }
 
-  let detail = '';
-
-  if(r.status === 'down'){
-    const ai = S.aiCache[r.id];
-    const estRemain = Math.max(0, h.avg - dm);
-    const conf = Math.min(92, Math.max(18, 88 - dm * 1.8));
-
-    // Expected back time
-    const expectedTs  = ds ? (ds + h.avg * 60000) : null;
-    const isOverdue   = expectedTs && Date.now() > expectedTs;
-    let   expectedStr = '—';
+  let detail='';
+  if(r.status==='down'){
+    const ai=S.aiCache[r.id];
+    const estRemain=Math.max(0,h.avg-dm);
+    const conf=Math.min(92,Math.max(18,88-dm*1.8));
+    const expectedTs=ds?(ds+h.avg*60000):null;
+    const isOverdue=expectedTs&&Date.now()>expectedTs;
+    let expectedStr='—';
     if(expectedTs){
-      expectedStr = isOverdue
-        ? 'Overdue'
-        : '~' + new Date(expectedTs).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+      expectedStr=isOverdue?'Overdue':'~'+new Date(expectedTs).toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     }
-    const expectedColor = isOverdue ? 'var(--yellow)' : 'var(--green)';
-
-    // Conflict note
-    const conflictNote = r.verified === 'conflict'
-      ? `<div style="font-size:10px;color:var(--yellow);margin-bottom:8px;padding:4px 6px;background:rgba(250,204,21,.08);border-radius:6px;border:1px solid rgba(250,204,21,.2)">⚠ Sources disagree on status — displaying as down to be safe.</div>`
-      : '';
-
-    detail = `
+    const expectedColor=isOverdue?'var(--yellow)':'var(--green)';
+    const conflictNote=r.verified==='conflict'
+      ?`<div style="font-size:10px;color:var(--yellow);margin-bottom:8px;padding:4px 6px;background:rgba(250,204,21,.08);border-radius:6px;border:1px solid rgba(250,204,21,.2)">⚠ Sources disagree on status — displaying as down to be safe.</div>`:'';
+    detail=`
     <div class="dp-panel">
       ${conflictNote}
       <div class="dp-grid">
@@ -808,23 +798,22 @@ function rideHTML(r){
         </div>
       </div>
       <div class="ai-hdr">Downtime Estimate</div>
-      ${ai && ai.text != null
-        ? `<div class="ai-txt">${ai.text}</div>
-           <div class="conf-wrap"><div class="conf-bar" style="width:${conf.toFixed(0)}%"></div></div>
-           <div class="conf-lbl">${conf.toFixed(0)}% confidence</div>`
-        : `<div class="ai-ld" id="ald-${r.id}"><div class="ms"></div><span>Calculating estimate…</span></div>
-           <div class="ai-txt" id="atx-${r.id}" style="display:none"></div>`}
+      ${ai&&ai.text!=null
+        ?`<div class="ai-txt">${ai.text}</div>
+          <div class="conf-wrap"><div class="conf-bar" style="width:${conf.toFixed(0)}%"></div></div>
+          <div class="conf-lbl">${conf.toFixed(0)}% confidence</div>`
+        :`<div class="ai-ld" id="ald-${r.id}"><div class="ms"></div><span>Calculating estimate…</span></div>
+          <div class="ai-txt" id="atx-${r.id}" style="display:none"></div>`}
       <div class="pills">
         <div class="pill">📊 Frequency: ${h.freq}</div>
         <div class="pill">⏱ Hist. avg: ${h.avg}m</div>
-        <div class="pill">🔮 Est. back: ~${estRemain>0 ? estRemain+'m' : 'Soon'}</div>
+        <div class="pill">🔮 Est. back: ~${estRemain>0?estRemain+'m':'Soon'}</div>
         <div class="pill" style="color:${relColor}">${relLabel}</div>
       </div>
     </div>`;
   }
-
-  if(r.status === 'open' && exp){
-    detail = `
+  if(r.status==='open'&&exp){
+    detail=`
     <div class="op-panel">
       <div class="op-grid">
         <div class="oc"><div class="ol">Wait</div><div class="ov" style="color:var(--green)">${r.wait>0?r.wait+'m':'Open'}</div></div>
@@ -833,7 +822,6 @@ function rideHTML(r){
       </div>
     </div>`;
   }
-
   return `
   <div class="rc ${r.status}" onclick="toggle(${r.id})" id="rc-${r.id}">
     <div class="rc-main">
@@ -853,66 +841,63 @@ function rideHTML(r){
 }
 
 function toggle(id){
-  const r = S.rides.find(x => x.id === id);
-  if(!r || r.status === 'down') return;
-  S.expanded.has(id) ? S.expanded.delete(id) : S.expanded.add(id);
-  const el = document.getElementById('rc-'+id);
-  if(el) el.outerHTML = rideHTML(r);
+  const r=S.rides.find(x=>x.id===id);
+  if(!r||r.status==='down') return;
+  S.expanded.has(id)?S.expanded.delete(id):S.expanded.add(id);
+  const el=document.getElementById('rc-'+id);
+  if(el) el.outerHTML=rideHTML(r);
 }
-
-function setF(f){ S.filter = f; renderList(); }
-
+function setF(f){S.filter=f;S.parkSearch='';renderList();}
 function fmt(m){
-  if(m < 1)  return '<1m';
-  if(m < 60) return m+'m';
+  if(m<1) return '<1m';
+  if(m<60) return m+'m';
   return Math.floor(m/60)+'h '+(m%60)+'m';
 }
 
 // ── LIVE DOWN TIMERS ──
 function startTimers(){
   clearInterval(window._tr);
-  window._tr = setInterval(() => {
-    Object.entries(S.downSince).forEach(([id, ts]) => {
-      const el = document.getElementById('tmr-'+id);
-      if(el) el.textContent = fmt(Math.floor((Date.now()-ts)/60000));
+  window._tr=setInterval(()=>{
+    Object.entries(S.downSince).forEach(([id,ts])=>{
+      const el=document.getElementById('tmr-'+id);
+      if(el) el.textContent=fmt(Math.floor((Date.now()-ts)/60000));
     });
-  }, 30000);
+  },30000);
 }
 
 // ── DOWNTIME ESTIMATE ──
 async function loadAI(ride){
-  if(S.aiCache[ride.id]?.text != null) return;
-  S.aiCache[ride.id] = {text:null};
-  const ds  = S.downSince[ride.id];
-  const dm  = ds ? Math.floor((Date.now()-ds)/60000) : 0;
-  const h   = ride.hist;
-  const remain = Math.max(0, h.avg - dm);
-  const fallback = remain > 0
-    ? `Based on historical data, ${ride.name} averages ${h.avg} minutes of downtime. Having been down ${dm} minutes, it should reopen in approximately ${remain} more minutes.`
-    : `${ride.name} has already exceeded its typical ${h.avg}-minute average downtime — reopening could happen any moment, or this may be a longer maintenance event.`;
-  setAI(ride.id, fallback);
+  if(S.aiCache[ride.id]?.text!=null) return;
+  S.aiCache[ride.id]={text:null};
+  const ds=S.downSince[ride.id];
+  const dm=ds?Math.floor((Date.now()-ds)/60000):0;
+  const h=ride.hist;
+  const remain=Math.max(0,h.avg-dm);
+  const fallback=remain>0
+    ?`Based on historical data, ${ride.name} averages ${h.avg} minutes of downtime. Having been down ${dm} minutes, it should reopen in approximately ${remain} more minutes.`
+    :`${ride.name} has already exceeded its typical ${h.avg}-minute average downtime — reopening could happen any moment, or this may be a longer maintenance event.`;
+  setAI(ride.id,fallback);
 }
-
-function setAI(id, txt){
-  S.aiCache[id] = {text:txt, ts:Date.now()};
-  const ld = document.getElementById('ald-'+id);
-  const tx = document.getElementById('atx-'+id);
-  if(ld) ld.style.display = 'none';
-  if(tx){ tx.textContent = txt; tx.style.display = 'block'; }
+function setAI(id,txt){
+  S.aiCache[id]={text:txt,ts:Date.now()};
+  const ld=document.getElementById('ald-'+id);
+  const tx=document.getElementById('atx-'+id);
+  if(ld) ld.style.display='none';
+  if(tx){tx.textContent=txt;tx.style.display='block';}
 }
 
 // ── TOAST ──
-function showToast(name, sub){
-  const t = document.getElementById('toast');
-  document.getElementById('t-title').textContent = name+' just went down';
-  document.getElementById('t-sub').textContent = sub;
+function showToast(name,sub){
+  const t=document.getElementById('toast');
+  document.getElementById('t-title').textContent=name+' just went down';
+  document.getElementById('t-sub').textContent=sub;
   t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 5000);
+  setTimeout(()=>t.classList.remove('show'),5000);
 }
 
 // ── ERROR STATE ──
 function showErr(){
-  document.getElementById('content').innerHTML = `
+  document.getElementById('content').innerHTML=`
     <div class="err-box">
       <span style="font-size:18px;flex-shrink:0">⚠️</span>
       <div>
@@ -927,15 +912,50 @@ function showErr(){
       <div class="scr"><div class="snum">1</div><div>Run in terminal:<br><code style="color:var(--gold);font-size:11px">cd ~/Desktop/disney-tracker && vercel --prod --yes</code></div></div>
       <div class="scr"><div class="snum">2</div><div>Vercel gives you a live https:// URL — open in Safari</div></div>
       <div class="scr"><div class="snum">3</div><div>Tap Share → Add to Home Screen to install as an app</div></div>
-      <div class="scr"><div class="snum">4</div><div>Redeploy <strong style="color:var(--text)">worker.js</strong> to <strong style="color:var(--text)">dash.cloudflare.com</strong> → Workers (updated for dual-source)</div></div>
     </div>`;
 }
 
+// ── SELF-HEALING & BACKGROUND REFRESH ──
+
+// Refresh immediately when tab comes back into view with stale data
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden) return;
+  const staleMs=S.lastFetch?Date.now()-S.lastFetch.getTime():Infinity;
+  if(staleMs>90000){
+    clearTimeout(S.refreshTimer);
+    clearInterval(S.countdownTimer);
+    fetchPark();
+  }
+});
+
+// Catch uncaught JS errors and try to recover without crashing the app
+window.addEventListener('error',e=>{
+  console.warn('[DisneyTracker] Error caught:',e.message);
+  try{ if(S.rides.length&&!S.search) renderList(); }catch(_){}
+});
+window.addEventListener('unhandledrejection',e=>{
+  e.preventDefault();
+  console.warn('[DisneyTracker] Unhandled rejection:',e.reason);
+});
+
+// Health monitor — detect stuck loading states and stale data, auto-recover
+setInterval(()=>{
+  const content=document.getElementById('content');
+  // Stuck in loading spinner for >45s means fetch silently failed
+  const isStuck=content?.querySelector('.bspin')&&
+    (!S.lastFetch||Date.now()-S.lastFetch.getTime()>45000);
+  // Data older than 5 minutes means the refresh timer silently died
+  const isStale=S.lastFetch&&Date.now()-S.lastFetch.getTime()>5*60*1000;
+  if(isStuck||isStale){
+    clearTimeout(S.refreshTimer);
+    fetchPark();
+  }
+},30000);
+
 // ── BOOT ──
-// Run discovery and initial fetch in parallel — MK/EPCOT IDs are already known
-// so the first park load doesn't need to wait for discovery to finish
-discoverTPWIds(); // background — populates TPW_IDS[7] and TPW_IDS[8]
-fetchPark();
+loadDownSince(S.park);     // restore persisted downtime data before first render
+discoverTPWIds();           // background — finds HS & AK entity IDs
+fetchPark();               // start fetching immediately (MK/EPCOT IDs already known)
 </script>
 </body>
 </html>
