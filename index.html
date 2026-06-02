@@ -377,12 +377,15 @@ async function fetchTPWLive(parkId){
 
 // Discover HS and AK entity IDs from WDW destination children
 async function discoverTPWIds(){
-  // Check localStorage cache (valid 24 hours)
+  // Load valid (non-null) IDs from localStorage cache (valid 24 hours)
   try{
     const cached = JSON.parse(localStorage.getItem('tpw_ids') || '{}');
     if(cached.ts && Date.now() - cached.ts < 86400000 && cached.ids){
-      Object.assign(TPW_IDS, cached.ids);
-      return;
+      // Only assign IDs that are actually valid UUIDs — don't assign nulls
+      Object.entries(cached.ids).forEach(([k, v]) => {
+        if(v && typeof v === 'string' && v.length > 10) TPW_IDS[+k] = v;
+      });
+      if(TPW_IDS[7] && TPW_IDS[8]) return; // Cache gave us everything we need
     }
   }catch(e){}
 
@@ -396,19 +399,24 @@ async function discoverTPWIds(){
     const res = await fetchWithTimeout(url, 10000);
     if(!res.ok) return;
     const data = await res.json();
-    // Children may be at data.children or data.parks or inside entities array
-    const children = data.children || data.parks || data.entities || [];
+    // Children may be nested differently depending on API version
+    const children = data.children || data.parks || data.entities ||
+                     (Array.isArray(data) ? data : []);
     children.forEach(child => {
       const name = (child.name || '').toLowerCase();
       for(const [qtId, patterns] of Object.entries(TPW_KEYWORDS)){
-        if(!TPW_IDS[+qtId] && patterns.some(p => name.includes(p))){
+        if(!TPW_IDS[+qtId] && child.id && patterns.some(p => name.includes(p))){
           TPW_IDS[+qtId] = child.id;
         }
       }
     });
-    // Cache discovered IDs
-    const toCache = {7: TPW_IDS[7], 8: TPW_IDS[8]};
-    localStorage.setItem('tpw_ids', JSON.stringify({ids:toCache, ts:Date.now()}));
+    // Only cache if we actually found valid IDs — don't cache failures
+    if(TPW_IDS[7] || TPW_IDS[8]){
+      localStorage.setItem('tpw_ids', JSON.stringify({
+        ids:{7:TPW_IDS[7]||null, 8:TPW_IDS[8]||null},
+        ts:Date.now()
+      }));
+    }
   }catch(e){}
 }
 
@@ -459,7 +467,8 @@ function mergeRideData(qtRides, tpwLive){
     // Status conflict — trust the more conservative (DOWN wins)
     if(qtIsOpen !== tpwIsOpen){
       const conservativeStatus = qtIsOpen ? 'down' : r.status;
-      return {...r, status:conservativeStatus, tpwWait, tpwStatus:tpw.status, verified:'conflict'};
+      // Also set isOpen:false so this ride isn't counted in avg wait calculation
+      return {...r, status:conservativeStatus, isOpen:false, tpwWait, tpwStatus:tpw.status, verified:'conflict'};
     }
 
     // Both closed/down — agreement
@@ -538,6 +547,7 @@ function manualRefresh(){
 
 // ── PROCESS DATA ──
 function processData(qtData, tpwLive){
+  S.tpwReady = false; // reset per-park; mergeRideData sets it true if TPW data is used
   let {rides:all, lands} = extractRides(qtData);
   // Merge with ThemeParks.wiki for cross-verified data
   all = mergeRideData(all, tpwLive);
@@ -574,7 +584,7 @@ function selPark(id, cls, btn){
   S.park = id;
   S.rides = []; S.lands = []; S.downSince = {}; S.aiCache = {};
   S.expanded = new Set(); S.prevDown = new Set();
-  S.filter = 'all';
+  S.filter = 'all'; S.tpwReady = false;
   document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if(!S.search){
@@ -781,7 +791,7 @@ function rideHTML(r){
 
     // Conflict note
     const conflictNote = r.verified === 'conflict'
-      ? `<div style="font-size:10px;color:var(--yellow);margin-bottom:8px;padding:4px 6px;background:rgba(250,204,21,.08);border-radius:6px;border:1px solid rgba(250,204,21,.2)">⚠ QT shows open — TPW shows ${(r.tpwStatus||'closed').toLowerCase()}. Displaying as down to be safe.</div>`
+      ? `<div style="font-size:10px;color:var(--yellow);margin-bottom:8px;padding:4px 6px;background:rgba(250,204,21,.08);border-radius:6px;border:1px solid rgba(250,204,21,.2)">⚠ Sources disagree on status — displaying as down to be safe.</div>`
       : '';
 
     detail = `
@@ -922,9 +932,10 @@ function showErr(){
 }
 
 // ── BOOT ──
-// Discover ThemeParks.wiki IDs for HS and AK in background,
-// then kick off the first park fetch
-discoverTPWIds().finally(() => fetchPark());
+// Run discovery and initial fetch in parallel — MK/EPCOT IDs are already known
+// so the first park load doesn't need to wait for discovery to finish
+discoverTPWIds(); // background — populates TPW_IDS[7] and TPW_IDS[8]
+fetchPark();
 </script>
 </body>
 </html>
