@@ -86,6 +86,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .park-badge.hs{background:rgba(249,115,22,.15);color:var(--hs)}
 .park-badge.ak{background:rgba(167,139,250,.15);color:var(--ak)}
 
+/* SOURCE VERIFICATION BADGE */
+.src{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:3px;font-size:9px;font-weight:800;margin-left:3px;flex-shrink:0;cursor:default}
+.src-ok{background:rgba(34,197,94,.15);color:var(--green)}
+.src-diff{background:rgba(250,204,21,.15);color:var(--yellow)}
+.src-conflict{background:rgba(239,68,68,.18);color:var(--red)}
+
 /* LAND HEADER */
 .land-hdr{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--t3);text-transform:uppercase;padding:12px 4px 6px;border-bottom:1px solid var(--bd);margin-bottom:8px}
 
@@ -225,20 +231,31 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 <script>
 // ── CONFIG ──
-const WORKER = 'https://disney-proxy.grahamj2021.workers.dev';
-const PROXIES = [
+const WORKER   = 'https://disney-proxy.grahamj2021.workers.dev';
+const PROXIES  = [
   'https://api.allorigins.win/raw?url=',
   'https://corsproxy.io/?url=',
   'https://thingproxy.freeboard.io/fetch/',
 ];
-const QT = id => `https://queue-times.com/parks/${id}/queue_times.json`;
+const QT        = id => `https://queue-times.com/parks/${id}/queue_times.json`;
 const REFRESH_MS = 2 * 60 * 1000;
 
 // ── PARK CONSTANTS ──
-const PARK_IDS    = [6, 5, 7, 8];
-const PARK_NAMES  = {6:'Magic Kingdom', 5:'EPCOT', 7:'Hollywood Studios', 8:'Animal Kingdom'};
-const PARK_CLS    = {6:'mk', 5:'ep', 7:'hs', 8:'ak'};
-const PARK_EMOJI  = {6:'🏰', 5:'🌍', 7:'🎬', 8:'🦁'};
+const PARK_IDS   = [6, 5, 7, 8];
+const PARK_NAMES = {6:'Magic Kingdom', 5:'EPCOT', 7:'Hollywood Studios', 8:'Animal Kingdom'};
+const PARK_CLS   = {6:'mk', 5:'ep', 7:'hs', 8:'ak'};
+const PARK_EMOJI = {6:'🏰', 5:'🌍', 7:'🎬', 8:'🦁'};
+
+// ── THEMEPARKS.WIKI ENTITY IDs ──
+// MK and EPCOT confirmed; HS and AK discovered dynamically from WDW destination
+const TPW_IDS = {
+  6: '75ea578a-adc8-4116-a54d-dccb60765ef9',  // Magic Kingdom — confirmed
+  5: '288747d1-8b4f-4a64-867e-ea7c9b27bad8',  // EPCOT — confirmed
+  // 7 (Hollywood Studios) and 8 (Animal Kingdom) loaded via discoverTPWIds()
+};
+const WDW_DEST_ID = 'e957da41-3552-4cf6-b636-5babc5cbc4e5';
+// Keywords for matching discovered parks to our park IDs
+const TPW_KEYWORDS = {7:['hollywood'], 8:['animal kingdom']};
 
 // ── MEET & GREET FILTER ──
 const MG_KEYWORDS = [
@@ -250,7 +267,6 @@ const MG_KEYWORDS = [
 function isMeetGreet(name){
   const n = name.toLowerCase();
   if(MG_KEYWORDS.some(k => n.includes(k))) return true;
-  // Catch "Meet Ariel", "Meet Cinderella", etc. — but not ride names with those words
   if(/^meet\s+[a-zA-Z]/i.test(name) && !/railway|train|coaster|mountain|mine/i.test(name)) return true;
   return false;
 }
@@ -304,7 +320,8 @@ const S = {
   downSince:{}, aiCache:{}, expanded:new Set(),
   prevDown:new Set(), lastFetch:null,
   refreshTimer:null, countdownTimer:null, nextRefresh:null,
-  parkCache:{},   // {parkId: {data, ts}}
+  parkCache:{},   // {parkId: {data, tpwLive, ts}}
+  tpwReady:false, // whether ThemeParks.wiki is available
 };
 
 // ── FETCH HELPERS ──
@@ -317,7 +334,8 @@ function fetchWithTimeout(url, ms){
   });
 }
 
-async function fetchParkData(parkId){
+// Fetch raw Queue-Times.com data for a park
+async function fetchQTData(parkId){
   const qtUrl = QT(parkId);
   const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
   const urls = [];
@@ -335,7 +353,121 @@ async function fetchParkData(parkId){
   return null;
 }
 
-// ── EXTRACT RIDES (filters M&G, returns ride array + lands) ──
+// Fetch ThemeParks.wiki live data for a park (via worker proxy)
+async function fetchTPWLive(parkId){
+  const entityId = TPW_IDS[parkId];
+  if(!entityId) return null;
+  const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
+  if(!workerReady) return null;
+  try{
+    const url = WORKER + '?tpw=' + entityId + '&sub=live';
+    const res = await fetchWithTimeout(url, 10000);
+    if(!res.ok) return null;
+    const data = await res.json();
+    // Validate it's the right park by checking name matches
+    if(data.name){
+      const keyword = PARK_NAMES[parkId].toLowerCase().split(' ')[0];
+      if(!data.name.toLowerCase().includes(keyword)) return null;
+    }
+    return Array.isArray(data.liveData) ? data.liveData : null;
+  }catch(e){
+    return null;
+  }
+}
+
+// Discover HS and AK entity IDs from WDW destination children
+async function discoverTPWIds(){
+  // Check localStorage cache (valid 24 hours)
+  try{
+    const cached = JSON.parse(localStorage.getItem('tpw_ids') || '{}');
+    if(cached.ts && Date.now() - cached.ts < 86400000 && cached.ids){
+      Object.assign(TPW_IDS, cached.ids);
+      return;
+    }
+  }catch(e){}
+
+  if(TPW_IDS[7] && TPW_IDS[8]) return; // Already have all IDs
+
+  const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
+  if(!workerReady) return;
+
+  try{
+    const url = WORKER + '?tpw=' + WDW_DEST_ID + '&sub=children';
+    const res = await fetchWithTimeout(url, 10000);
+    if(!res.ok) return;
+    const data = await res.json();
+    // Children may be at data.children or data.parks or inside entities array
+    const children = data.children || data.parks || data.entities || [];
+    children.forEach(child => {
+      const name = (child.name || '').toLowerCase();
+      for(const [qtId, patterns] of Object.entries(TPW_KEYWORDS)){
+        if(!TPW_IDS[+qtId] && patterns.some(p => name.includes(p))){
+          TPW_IDS[+qtId] = child.id;
+        }
+      }
+    });
+    // Cache discovered IDs
+    const toCache = {7: TPW_IDS[7], 8: TPW_IDS[8]};
+    localStorage.setItem('tpw_ids', JSON.stringify({ids:toCache, ts:Date.now()}));
+  }catch(e){}
+}
+
+// ── RIDE NAME NORMALIZATION (for cross-source matching) ──
+function normName(n){
+  return n.toLowerCase()
+    .replace(/[™®©★]/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// ── MERGE Queue-Times + ThemeParks.wiki DATA ──
+function mergeRideData(qtRides, tpwLive){
+  if(!tpwLive || !tpwLive.length) return qtRides;
+
+  // Build TPW lookup by normalized name (attractions only)
+  const tpwMap = {};
+  tpwLive.forEach(t => {
+    if(t.entityType === 'ATTRACTION' || !t.entityType){
+      tpwMap[normName(t.name)] = t;
+    }
+  });
+
+  S.tpwReady = true;
+
+  return qtRides.map(r => {
+    const tpw = tpwMap[normName(r.name)];
+    if(!tpw) return r; // No TPW match — use QT data as-is
+
+    const tpwIsOpen = tpw.status === 'OPERATING';
+    const tpwWait   = tpw.queue?.STANDBY?.waitTime ?? null;
+    const qtIsOpen  = r.status === 'open';
+
+    // Both open — average wait times, flag if they differ notably
+    if(qtIsOpen && tpwIsOpen){
+      let wait = r.wait;
+      let verified = 'agree';
+      if(tpwWait !== null && r.wait > 0){
+        wait = Math.round((r.wait + tpwWait) / 2);
+        if(Math.abs(r.wait - tpwWait) > 15) verified = 'diff';
+      } else if(tpwWait !== null && r.wait === 0){
+        wait = tpwWait;
+      }
+      return {...r, wait, tpwWait, verified};
+    }
+
+    // Status conflict — trust the more conservative (DOWN wins)
+    if(qtIsOpen !== tpwIsOpen){
+      const conservativeStatus = qtIsOpen ? 'down' : r.status;
+      return {...r, status:conservativeStatus, tpwWait, tpwStatus:tpw.status, verified:'conflict'};
+    }
+
+    // Both closed/down — agreement
+    return {...r, tpwStatus:tpw.status, verified:'agree'};
+  });
+}
+
+// ── EXTRACT RIDES from raw QT data ──
 function extractRides(data){
   const rides = [], lands = [];
   function add(list, landName){
@@ -357,27 +489,29 @@ function extractRides(data){
   return {rides, lands:[...new Set(lands)]};
 }
 
-// ── MAIN PARK FETCH ──
+// ── MAIN PARK FETCH (both sources in parallel) ──
 async function fetchPark(){
   const lbl = document.getElementById('llbl');
   if(lbl) lbl.textContent = 'UPDATING';
-  const data = await fetchParkData(S.park);
-  if(!data){
+
+  // Fetch Queue-Times.com and ThemeParks.wiki simultaneously
+  const [qtData, tpwLive] = await Promise.all([
+    fetchQTData(S.park),
+    fetchTPWLive(S.park),
+  ]);
+
+  if(!qtData){
     if(lbl) lbl.textContent = 'RETRY';
     if(!S.rides.length) showErr();
     scheduleRefresh(30000);
     return;
   }
-  S.parkCache[S.park] = {data, ts:Date.now()};
-  processData(data);
+
+  S.parkCache[S.park] = {data:qtData, tpwLive, ts:Date.now()};
+  processData(qtData, tpwLive);
   S.lastFetch = new Date();
   if(lbl) lbl.textContent = 'LIVE';
-  if(S.search){
-    // Refresh search results with updated data
-    searchAllParks(S.search);
-  } else {
-    renderList();
-  }
+  if(S.search){ searchAllParks(S.search); } else { renderList(); }
   scheduleRefresh(REFRESH_MS);
 }
 
@@ -388,9 +522,9 @@ function scheduleRefresh(ms){
   S.refreshTimer = setTimeout(fetchPark, ms);
   function tick(){
     const rem = Math.max(0, Math.ceil((S.nextRefresh - Date.now()) / 1000));
-    const m = Math.floor(rem / 60), s = rem % 60;
+    const m = Math.floor(rem/60), sec = rem%60;
     const el = document.getElementById('countdown');
-    if(el) el.textContent = `Next refresh: ${m}:${s.toString().padStart(2,'0')}`;
+    if(el) el.textContent = `Next refresh: ${m}:${sec.toString().padStart(2,'0')}`;
   }
   tick();
   S.countdownTimer = setInterval(tick, 1000);
@@ -402,9 +536,12 @@ function manualRefresh(){
   fetchPark();
 }
 
-// ── PROCESS DATA FOR CURRENT PARK ──
-function processData(data){
-  const {rides:all, lands} = extractRides(data);
+// ── PROCESS DATA ──
+function processData(qtData, tpwLive){
+  let {rides:all, lands} = extractRides(qtData);
+  // Merge with ThemeParks.wiki for cross-verified data
+  all = mergeRideData(all, tpwLive);
+
   const nowDown = new Set();
   all.forEach(r => { if(r.status === 'down') nowDown.add(r.id); });
 
@@ -420,8 +557,8 @@ function processData(data){
   });
 
   S.prevDown = nowDown;
-  S.rides = all;
-  S.lands = lands;
+  S.rides    = all;
+  S.lands    = lands;
 
   const open  = all.filter(r => r.status === 'open').length;
   const down  = all.filter(r => r.status === 'down').length;
@@ -452,19 +589,17 @@ function selPark(id, cls, btn){
 
 // ── SEARCH ──
 let _searchTimer;
-
 function handleSearch(q){
   S.search = (q || '').trim();
   const clr = document.getElementById('search-clear');
   if(clr) clr.classList.toggle('vis', !!S.search);
   clearTimeout(_searchTimer);
   if(!S.search){ renderList(); return; }
-  // Immediately show current-park matches
+  // Instantly show current-park matches
   const instant = S.rides
     .filter(r => r.name.toLowerCase().includes(S.search.toLowerCase()))
     .map(r => ({...r, parkId:S.park, parkName:PARK_NAMES[S.park], parkCls:PARK_CLS[S.park]}));
   renderSearchResults(instant, true);
-  // Then expand to all parks after a short debounce
   _searchTimer = setTimeout(() => searchAllParks(S.search), 350);
 }
 
@@ -475,20 +610,24 @@ async function searchAllParks(q){
 
   const fetches = PARK_IDS.map(async pid => {
     const cached = S.parkCache[pid];
-    if(cached && now - cached.ts < TTL) return {pid, data:cached.data};
-    const data = await fetchParkData(pid);
-    if(data) S.parkCache[pid] = {data, ts:now};
-    return {pid, data};
+    if(cached && now - cached.ts < TTL) return {pid, cached};
+    const [qtData, tpwLive] = await Promise.all([
+      fetchQTData(pid),
+      fetchTPWLive(pid),
+    ]);
+    if(qtData) S.parkCache[pid] = {data:qtData, tpwLive, ts:now};
+    return {pid, cached: S.parkCache[pid]};
   });
 
   const results = await Promise.all(fetches);
-  if(S.search !== q) return; // Query changed while fetching
+  if(S.search !== q) return;
 
   const ql = q.toLowerCase();
   const matches = [];
-  results.forEach(({pid, data}) => {
-    if(!data) return;
-    const {rides} = extractRides(data);
+  results.forEach(({pid, cached}) => {
+    if(!cached) return;
+    let {rides} = extractRides(cached.data);
+    rides = mergeRideData(rides, cached.tpwLive);
     rides
       .filter(r => r.name.toLowerCase().includes(ql))
       .forEach(r => matches.push({...r, parkId:pid, parkName:PARK_NAMES[pid], parkCls:PARK_CLS[pid]}));
@@ -501,7 +640,6 @@ function renderSearchResults(matches, loading){
   const c = document.getElementById('content');
   const rank = {down:0, refurb:1, open:2};
 
-  // Group by park, sorted within each park
   let html = '';
   PARK_IDS.forEach(pid => {
     const pr = matches
@@ -512,7 +650,9 @@ function renderSearchResults(matches, loading){
     html += pr.map(r => rideHTML(r)).join('');
   });
 
-  const suffix = loading ? ' <span style="color:var(--t3);font-size:10px">searching all parks…</span>' : '';
+  const suffix = loading
+    ? ' <span style="color:var(--t3);font-size:10px">searching all parks…</span>'
+    : '';
   c.innerHTML = `
     <div class="fbar">
       <span style="font-size:12px;color:var(--t2);display:flex;align-items:center;flex-wrap:wrap;gap:4px">
@@ -531,13 +671,12 @@ function clearSearch(){
   S.search = '';
   const inp = document.getElementById('search-input');
   if(inp){ inp.value = ''; inp.blur(); }
-  const clr = document.getElementById('search-clear');
-  if(clr) clr.classList.remove('vis');
+  document.getElementById('search-clear')?.classList.remove('vis');
   clearTimeout(_searchTimer);
   renderList();
 }
 
-// ── RENDER CURRENT PARK LIST ──
+// ── RENDER CURRENT PARK ──
 function renderList(){
   if(S.search) return;
   const c = document.getElementById('content');
@@ -565,6 +704,10 @@ function renderList(){
     html = rides.map(r => rideHTML(r)).join('');
   }
 
+  const srcNote = S.tpwReady
+    ? `<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a> + <a href="https://themeparks.wiki" target="_blank" rel="noopener">ThemeParks.wiki</a>`
+    : `<a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a>`;
+
   c.innerHTML = `
     <div class="fbar">
       <button class="fb ${S.filter==='all'?'on':''}" onclick="setF('all')">All Rides</button>
@@ -574,7 +717,7 @@ function renderList(){
     ${!rides.length ? '<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides match this filter.</div>' : ''}
     ${html}
     <div class="urow">${S.lastFetch ? 'Last updated: '+S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}</div>
-    <div class="pby">Live data: <a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a></div>`;
+    <div class="pby">Live data: ${srcNote}</div>`;
 
   rides.filter(r => r.status === 'down').forEach(loadAI);
   startTimers();
@@ -590,6 +733,23 @@ function rideHTML(r){
   const dotc     = r.status==='open' ? 'open' : r.status==='down' ? 'down' : r.status==='refurb' ? 'refurb' : 'unknown';
   const exp      = S.expanded.has(r.id);
 
+  // Source verification badge
+  let srcBadge = '';
+  if(r.verified === 'agree' && r.tpwWait !== undefined){
+    srcBadge = `<span class="src src-ok" title="Both sources agree">✓</span>`;
+  } else if(r.verified === 'agree' && r.tpwStatus !== undefined){
+    srcBadge = `<span class="src src-ok" title="Both sources confirm status">✓</span>`;
+  } else if(r.verified === 'diff'){
+    srcBadge = `<span class="src src-diff" title="QT: ${r.wait}m · TPW: ${r.tpwWait}m — showing average">≈</span>`;
+  } else if(r.verified === 'conflict'){
+    srcBadge = `<span class="src src-conflict" title="Sources disagree — showing as down to be safe">⚠</span>`;
+  }
+
+  // Park badge (shown in search results only)
+  const parkBadge = r.parkCls
+    ? `<span class="park-badge ${r.parkCls}">${PARK_EMOJI[r.parkId]||''} ${r.parkName||''}</span>`
+    : '';
+
   // Right wait badge
   let badge = '';
   if(r.status === 'open'){
@@ -601,17 +761,12 @@ function rideHTML(r){
     badge = `<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
   }
 
-  // Park badge shown when ride has a parkCls (i.e. came from search)
-  const parkBadge = r.parkCls
-    ? `<span class="park-badge ${r.parkCls}">${PARK_EMOJI[r.parkId]||''} ${r.parkName||''}</span>`
-    : '';
-
   let detail = '';
 
   if(r.status === 'down'){
     const ai = S.aiCache[r.id];
     const estRemain = Math.max(0, h.avg - dm);
-    const conf      = Math.min(92, Math.max(18, 88 - dm * 1.8));
+    const conf = Math.min(92, Math.max(18, 88 - dm * 1.8));
 
     // Expected back time
     const expectedTs  = ds ? (ds + h.avg * 60000) : null;
@@ -624,8 +779,14 @@ function rideHTML(r){
     }
     const expectedColor = isOverdue ? 'var(--yellow)' : 'var(--green)';
 
+    // Conflict note
+    const conflictNote = r.verified === 'conflict'
+      ? `<div style="font-size:10px;color:var(--yellow);margin-bottom:8px;padding:4px 6px;background:rgba(250,204,21,.08);border-radius:6px;border:1px solid rgba(250,204,21,.2)">⚠ QT shows open — TPW shows ${(r.tpwStatus||'closed').toLowerCase()}. Displaying as down to be safe.</div>`
+      : '';
+
     detail = `
     <div class="dp-panel">
+      ${conflictNote}
       <div class="dp-grid">
         <div class="dp-cell">
           <div class="dp-lbl">Down For</div>
@@ -672,7 +833,7 @@ function rideHTML(r){
         <div class="rmeta">
           <span class="rland">${r.land}</span>
           <span style="color:${relColor};font-size:10px;font-weight:600">· ${relLabel}</span>
-          ${parkBadge}
+          ${srcBadge}${parkBadge}
         </div>
       </div>
       <div class="rr">${badge}</div>
@@ -756,12 +917,14 @@ function showErr(){
       <div class="scr"><div class="snum">1</div><div>Run in terminal:<br><code style="color:var(--gold);font-size:11px">cd ~/Desktop/disney-tracker && vercel --prod --yes</code></div></div>
       <div class="scr"><div class="snum">2</div><div>Vercel gives you a live https:// URL — open in Safari</div></div>
       <div class="scr"><div class="snum">3</div><div>Tap Share → Add to Home Screen to install as an app</div></div>
-      <div class="scr"><div class="snum">4</div><div>For reliable data, deploy <strong style="color:var(--text)">worker.js</strong> to <strong style="color:var(--text)">dash.cloudflare.com</strong> → Workers</div></div>
+      <div class="scr"><div class="snum">4</div><div>Redeploy <strong style="color:var(--text)">worker.js</strong> to <strong style="color:var(--text)">dash.cloudflare.com</strong> → Workers (updated for dual-source)</div></div>
     </div>`;
 }
 
 // ── BOOT ──
-fetchPark();
+// Discover ThemeParks.wiki IDs for HS and AK in background,
+// then kick off the first park fetch
+discoverTPWIds().finally(() => fetchPark());
 </script>
 </body>
 </html>
