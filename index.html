@@ -333,7 +333,6 @@ const RIDE_DATA = {
   'Turtle Talk with Crush':            {thrill:'Mild',     height:null,  type:'ride', emoji:'🐢'},
   'Journey Into Imagination with Figment': {thrill:'Mild', height:null, type:'ride', emoji:'🦄'},
   "Gran Fiesta Tour Starring The Three Caballeros": {thrill:'Mild', height:null, type:'ride', emoji:'🎺'},
-  'Rattatouille':                      {thrill:'Mild',     height:null,  type:'ride', emoji:'🐀'},
   // ── HOLLYWOOD STUDIOS ──────────────────────────
   'Star Wars: Rise of the Resistance': {thrill:'Thrill',   height:'40"', type:'ride', emoji:'⚔️'},
   'Millennium Falcon: Smugglers Run':  {thrill:'Moderate', height:'38"', type:'ride', emoji:'🚀'},
@@ -810,7 +809,7 @@ function rideHTML(r) {
   }
 
   return `
-  <div class="rc ${r.status}" onclick="toggleExpand(${r.id})" id="rc-${r.id}">
+  <div class="rc ${r.status}" onclick="toggleExpand(${typeof r.id === 'number' ? r.id : `'${r.id}'`})" id="rc-${r.id}">
     <div class="rc-main">
       <div class="rsd ${dotc}"></div>
       <div class="ri">
