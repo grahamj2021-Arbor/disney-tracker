@@ -243,6 +243,41 @@ const PROXIES = [
 const QT = id => `https://queue-times.com/parks/${id}/queue_times.json`;
 const REFRESH_MS = 2 * 60 * 1000;
 
+// ThemeParks.wiki — second data source (free, no key)
+const TP_BASE = 'https://api.themeparks.wiki/v1';
+const TP_PARK_IDS = {
+  6: '75ea578a-adc8-4116-a54d-dccb60765ef9', // Magic Kingdom
+  5: '47f90d2c-e191-4239-a466-5892ef59a88b', // EPCOT
+  7: '288747d1-8b4f-4a64-867e-ea7c9b27bad8', // Hollywood Studios
+  8: '1c84a229-8862-4648-9c71-378ddd2c7693', // Animal Kingdom
+};
+
+// Persist first-detected downtime across page refreshes (Issue 1 fix)
+const DOWNSINCE_KEY = 'disney-tracker-downsince-v1';
+const DOWNSINCE_MAX_AGE = 24 * 60 * 60 * 1000;
+
+function loadDownSince() {
+  try {
+    const raw = localStorage.getItem(DOWNSINCE_KEY);
+    if(!raw) return {};
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed !== 'object') return {};
+    const now = Date.now();
+    Object.keys(parsed).forEach(k => {
+      if(typeof parsed[k] !== 'number' || now - parsed[k] > DOWNSINCE_MAX_AGE) delete parsed[k];
+    });
+    return parsed;
+  } catch(e) { return {}; }
+}
+
+function saveDownSince() {
+  try { localStorage.setItem(DOWNSINCE_KEY, JSON.stringify(S.downSince)); } catch(e) {}
+}
+
+function normName(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 // ═══════════════════════════════════════════════════
 // RIDE DATABASE — thrill levels, height reqs, types
 // Rides NOT in this list OR marked type:'show'|'meet'
@@ -393,7 +428,7 @@ const S = {
   park:6, activeTab:'rides', filter:'all', thrillFilter:'all',
   searchQuery:'', searchPark:'all', searchThrill:'all',
   rides:[], lands:[],
-  downSince:{}, aiCache:{}, expanded:new Set(),
+  downSince: loadDownSince(), aiCache:{}, expanded:new Set(),
   prevDown:new Set(), lastFetch:null,
   refreshTimer:null, countdownTimer:null, nextRefresh:null,
 };
@@ -410,17 +445,13 @@ function timedFetch(url, ms) {
   });
 }
 
-async function fetchPark() {
-  const lbl = document.getElementById('llbl');
-  if(lbl) lbl.textContent = 'UPDATING';
-
+async function fetchQueueTimes() {
   const qtUrl = QT(S.park);
   const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
   const urls = [];
   if(workerReady) urls.push(WORKER + '?park=' + S.park);
   PROXIES.forEach(p => urls.push(p + encodeURIComponent(qtUrl)));
 
-  let data = null;
   for(let i = 0; i < urls.length; i++) {
     try {
       const r = await timedFetch(urls[i], 9000);
@@ -428,18 +459,42 @@ async function fetchPark() {
       const txt = await r.text();
       const clean = txt.trim().replace(/^\s*[^{[]*/, '').replace(/[^}\]]*$/, '');
       const json = JSON.parse(clean);
-      if(json && (json.lands || json.rides)) { data = json; break; }
+      if(json && (json.lands || json.rides)) return json;
     } catch(e) { continue; }
   }
+  return null;
+}
 
-  if(!data) {
+async function fetchThemeParksWiki() {
+  const parkId = TP_PARK_IDS[S.park];
+  if(!parkId) return null;
+  try {
+    const r = await timedFetch(`${TP_BASE}/entity/${parkId}/live`, 9000);
+    if(!r.ok) return null;
+    const json = await r.json();
+    if(json && Array.isArray(json.liveData)) return json.liveData;
+  } catch(e) {}
+  return null;
+}
+
+async function fetchPark() {
+  const lbl = document.getElementById('llbl');
+  if(lbl) lbl.textContent = 'UPDATING';
+
+  // Fetch both sources in parallel; each isolated so one failing source never breaks the page
+  const [qtData, tpLiveData] = await Promise.all([
+    fetchQueueTimes().catch(() => null),
+    fetchThemeParksWiki().catch(() => null),
+  ]);
+
+  if(!qtData && !tpLiveData) {
     if(lbl) lbl.textContent = 'RETRY';
     if(!S.rides.length) showErr();
     scheduleRefresh(30000);
     return;
   }
 
-  processData(data);
+  processData(qtData, tpLiveData);
   S.lastFetch = new Date();
   if(lbl) lbl.textContent = 'LIVE';
 
@@ -472,43 +527,111 @@ function manualRefresh() {
 // ═══════════════════════════════════════════════════
 // PROCESS
 // ═══════════════════════════════════════════════════
-function processData(data) {
+function processData(qtData, tpLiveData) {
   const all = [], lands = [], nowDown = new Set();
 
-  function add(list, landName) {
-    list.forEach(r => {
-      // Skip non-rides
-      if(!isRide(r.name)) return;
-      let status = 'open';
-      if(!r.is_open) {
-        const age = r.last_updated ? (Date.now() - new Date(r.last_updated).getTime()) : 0;
-        status = age > 3 * 60 * 60 * 1000 ? 'refurb' : 'down';
+  // Build TP lookup keyed by normalized name
+  const tpByName = {};
+  if(tpLiveData) {
+    tpLiveData.forEach(item => {
+      if(item.entityType && item.entityType !== 'ATTRACTION') return;
+      tpByName[normName(item.name)] = item;
+    });
+  }
+  const tpMatched = new Set();
+
+  function findTp(name) {
+    const norm = normName(name);
+    if(tpByName[norm]) { tpMatched.add(norm); return tpByName[norm]; }
+    const key = Object.keys(tpByName).find(k =>
+      (norm.length >= 8 && k.includes(norm.slice(0, 12))) ||
+      (k.length >= 8 && norm.includes(k.slice(0, 12)))
+    );
+    if(key) { tpMatched.add(key); return tpByName[key]; }
+    return null;
+  }
+
+  function tpStatusOf(tp) {
+    if(!tp) return null;
+    const s = tp.status;
+    if(s === 'OPERATING') return 'open';
+    if(s === 'DOWN') return 'down';
+    if(s === 'REFURBISHMENT' || s === 'CLOSED') return 'refurb';
+    return null;
+  }
+
+  function pushRide({name, id, land, qtRide}) {
+    if(!isRide(name)) return;
+    const tp = findTp(name);
+
+    let qtStatus = null;
+    if(qtRide) {
+      if(qtRide.is_open) qtStatus = 'open';
+      else {
+        const age = qtRide.last_updated ? (Date.now() - new Date(qtRide.last_updated).getTime()) : 0;
+        qtStatus = age > 3 * 60 * 60 * 1000 ? 'refurb' : 'down';
       }
-      const rd = getRideData(r.name);
-      all.push({
-        id: r.id, name: r.name, land: landName,
-        isOpen: r.is_open, wait: r.wait_time || 0,
-        hist: getH(r.name), status, rd,
-      });
-      if(status === 'down') nowDown.add(r.id);
+    }
+    const tpStatus = tpStatusOf(tp);
+
+    // Merge rule: DOWN if at least one source reports DOWN.
+    // Otherwise OPEN if at least one reports OPEN. Otherwise REFURB. Default open.
+    let status;
+    if(qtStatus === 'down' || tpStatus === 'down') status = 'down';
+    else if(qtStatus === 'open' || tpStatus === 'open') status = 'open';
+    else if(qtStatus === 'refurb' || tpStatus === 'refurb') status = 'refurb';
+    else status = 'open';
+
+    let wait = qtRide?.wait_time || 0;
+    if(!wait && tp?.queue?.STANDBY?.waitTime) wait = tp.queue.STANDBY.waitTime;
+
+    const rd = getRideData(name);
+    all.push({
+      id, name, land, isOpen: status === 'open', wait,
+      hist: getH(name), status, rd,
+    });
+    if(status === 'down') nowDown.add(id);
+  }
+
+  if(qtData) {
+    if(qtData.lands) qtData.lands.forEach(l => {
+      if(l.rides?.length) {
+        lands.push(l.name);
+        l.rides.forEach(r => pushRide({name: r.name, id: r.id, land: l.name, qtRide: r}));
+      }
+    });
+    if(qtData.rides?.length) {
+      qtData.rides.forEach(r => pushRide({name: r.name, id: r.id, land: 'General', qtRide: r}));
+    }
+  }
+
+  // Pick up any TP-only rides (QT was missing them or failed entirely)
+  if(tpLiveData) {
+    tpLiveData.forEach(item => {
+      if(item.entityType && item.entityType !== 'ATTRACTION') return;
+      const norm = normName(item.name);
+      if(tpMatched.has(norm)) return;
+      pushRide({name: item.name, id: 'tp-' + item.id, land: 'Live', qtRide: null});
     });
   }
 
-  if(data.lands) data.lands.forEach(l => {
-    if(l.rides?.length) { lands.push(l.name); add(l.rides, l.name); }
-  });
-  if(data.rides?.length) add(data.rides, 'General');
-
+  // Persist FIRST time each ride is seen down — value survives page refreshes via localStorage
   nowDown.forEach(id => {
+    const key = String(id);
     if(!S.prevDown.has(id) && S.rides.length > 0) {
       const r = all.find(x => x.id === id);
       if(r) showToast(r.name, 'Just went offline');
     }
-    if(!S.downSince[id]) S.downSince[id] = Date.now();
+    if(!S.downSince[key]) S.downSince[key] = Date.now();
   });
-  Object.keys(S.downSince).forEach(id => {
-    if(!nowDown.has(+id)) delete S.downSince[id];
+
+  // Only clear entries for rides in the CURRENT park that came back up — leave other parks' state alone
+  const currentIds = new Set(all.map(r => String(r.id)));
+  const nowDownKeys = new Set([...nowDown].map(String));
+  Object.keys(S.downSince).forEach(key => {
+    if(currentIds.has(key) && !nowDownKeys.has(key)) delete S.downSince[key];
   });
+  saveDownSince();
 
   S.prevDown = nowDown;
   S.rides = all;
@@ -536,7 +659,7 @@ function switchTab(tab) {
 
 function selPark(id, cls, btn) {
   S.park = id; S.rides = []; S.lands = [];
-  S.downSince = {}; S.aiCache = {}; S.expanded = new Set();
+  S.aiCache = {}; S.expanded = new Set();
   S.prevDown = new Set(); S.filter = 'all'; S.thrillFilter = 'all';
   document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -592,7 +715,7 @@ function renderRides() {
     ${!rides.length ? '<div style="text-align:center;padding:40px 0;color:var(--t3);font-size:13px">No rides match this filter.</div>' : ''}
     ${html}
     <div class="urow">${S.lastFetch ? 'Updated ' + S.lastFetch.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'}) : ''}</div>
-    <div class="pby">Live data: <a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times.com</a></div>`;
+    <div class="pby">Live data: <a href="https://queue-times.com" target="_blank" rel="noopener">Queue-Times</a> + <a href="https://themeparks.wiki" target="_blank" rel="noopener">ThemeParks.wiki</a></div>`;
 
   rides.filter(r => r.status === 'down').forEach(loadAI);
   startTimers();
