@@ -278,6 +278,23 @@ function normName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+// ThemeParks.wiki's lastUpdated reflects the last status change (verified empirically:
+// down rides carry timestamps from hours ago, not just the poll moment). Queue-Times
+// last_updated is poll time and is NOT usable for this. So when TP reports a non-
+// operating state with a sane timestamp, use that as the authoritative "went down"
+// time. Take the earliest of (TP timestamp, persisted localStorage value, now).
+function pickDownSince(tpRide, persisted) {
+  const candidates = [];
+  if(tpRide && tpRide.lastUpdated && (tpRide.status === 'DOWN' || tpRide.status === 'CLOSED' || tpRide.status === 'REFURBISHMENT')) {
+    const t = new Date(tpRide.lastUpdated).getTime();
+    const now = Date.now();
+    // Reject future timestamps (clock skew) and absurdly old ones (>12h is likely a permanent closure, not a useful "down for" reading)
+    if(!isNaN(t) && t <= now && (now - t) < 12 * 60 * 60 * 1000) candidates.push(t);
+  }
+  if(typeof persisted === 'number') candidates.push(persisted);
+  return candidates.length ? Math.min(...candidates) : Date.now();
+}
+
 // ═══════════════════════════════════════════════════
 // RIDE DATABASE — thrill levels, height reqs, types
 // Rides NOT in this list OR marked type:'show'|'meet'
@@ -529,6 +546,7 @@ function manualRefresh() {
 // ═══════════════════════════════════════════════════
 function processData(qtData, tpLiveData) {
   const all = [], lands = [], nowDown = new Set();
+  const tpByRideId = {};  // ride id (string) → tp entry, for downSince derivation
 
   // Build TP lookup keyed by normalized name
   const tpByName = {};
@@ -590,6 +608,7 @@ function processData(qtData, tpLiveData) {
       id, name, land, isOpen: status === 'open', wait,
       hist: getH(name), status, rd,
     });
+    if(tp) tpByRideId[String(id)] = tp;
     if(status === 'down') nowDown.add(id);
   }
 
@@ -615,14 +634,19 @@ function processData(qtData, tpLiveData) {
     });
   }
 
-  // Persist FIRST time each ride is seen down — value survives page refreshes via localStorage
+  // Derive the most accurate downSince per ride. Prefer TP's lastUpdated (real status-
+  // change time) over our first-detection stamp. Persisted localStorage value wins if
+  // it's even earlier (we saw the ride down before TP's window). Survives page refresh.
   nowDown.forEach(id => {
     const key = String(id);
     if(!S.prevDown.has(id) && S.rides.length > 0) {
       const r = all.find(x => x.id === id);
       if(r) showToast(r.name, 'Just went offline');
     }
-    if(!S.downSince[key]) S.downSince[key] = Date.now();
+    const candidate = pickDownSince(tpByRideId[key], S.downSince[key]);
+    if(!S.downSince[key] || candidate < S.downSince[key]) {
+      S.downSince[key] = candidate;
+    }
   });
 
   // Only clear entries for rides in the CURRENT park that came back up — leave other parks' state alone
