@@ -22,7 +22,7 @@
   --mk:#4ade80;--ep:#60a5fa;--hs:#f97316;--ak:#a78bfa;
   --st:env(safe-area-inset-top,0px);--sb:env(safe-area-inset-bottom,0px);
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #app{display:flex;flex-direction:column;height:100dvh;max-width:520px;margin:0 auto}
 
 /* HEADER */
@@ -42,7 +42,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* PARK TABS */
 .ptabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:2px;margin-bottom:10px}
 .ptabs::-webkit-scrollbar{display:none}
-.ptab{flex-shrink:0;padding:7px 13px;border-radius:20px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-family:'Inter',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.ptab{flex-shrink:0;padding:7px 13px;border-radius:20px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
 .ptab.mk.active{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.4);color:var(--mk)}
 .ptab.ep.active{background:rgba(96,165,250,.12);border-color:rgba(96,165,250,.4);color:var(--ep)}
 .ptab.hs.active{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.4);color:var(--hs)}
@@ -51,29 +51,29 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* STATS ROW */
 .stats-row{display:flex;margin-bottom:10px}
 .si{text-align:center;flex:1}
-.sn{font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:600;line-height:1}
+.sn{font-family:'JetBrains Mono','Courier New',Courier,monospace;font-size:18px;font-weight:600;line-height:1}
 .sl{font-size:9px;color:var(--t3);letter-spacing:1.5px;margin-top:2px}
 
 /* REFRESH PILL */
 .ref-row{display:flex;align-items:center;justify-content:space-between}
 .ref-pill{display:flex;align-items:center;gap:5px;background:rgba(255,215,0,.07);border:1px solid rgba(255,215,0,.18);border-radius:16px;padding:3px 9px;font-size:10px;color:var(--gold);font-weight:600}
-.countdown{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t3)}
+.countdown{font-family:'JetBrains Mono','Courier New',Courier,monospace;font-size:10px;color:var(--t3)}
 
 /* BOTTOM NAV */
 .bnav{display:flex;background:#000814;border-top:1px solid var(--bd);flex-shrink:0;padding-bottom:var(--sb)}
-.bnav-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:var(--t3);font-family:'Inter',sans-serif;font-size:9px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s;-webkit-tap-highlight-color:transparent;text-transform:uppercase}
+.bnav-btn{flex:1;padding:10px 4px 8px;border:none;background:transparent;color:var(--t3);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:9px;font-weight:700;letter-spacing:.5px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;transition:color .2s;-webkit-tap-highlight-color:transparent;text-transform:uppercase}
 .bnav-btn .bni{font-size:18px;line-height:1}
 .bnav-btn.active{color:var(--gold)}
 
 /* CONTENT */
-.content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 12px 12px}
+.content{flex:1;overflow-y:auto;padding:14px 12px 12px}
 .content::-webkit-scrollbar{width:3px}
 .content::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
 
 /* FILTER BAR */
 .fbar{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
 .fbar::-webkit-scrollbar{display:none}
-.fb{flex-shrink:0;padding:5px 11px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.fb{flex-shrink:0;padding:5px 11px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .fb.on{background:var(--s3);color:var(--text)}
 .fb.dn.on{background:rgba(239,68,68,.1);color:var(--red);border-color:rgba(239,68,68,.3)}
 .fb.thr.on{background:rgba(255,215,0,.1);color:var(--gold);border-color:rgba(255,215,0,.3)}
@@ -108,7 +108,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .th-mild{background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.3)}
 .height-badge{font-size:9px;color:var(--t3);background:var(--s3);border:1px solid var(--bd2);border-radius:4px;padding:1px 5px;font-weight:600}
 .rr{text-align:right;flex-shrink:0;min-width:52px}
-.wb{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:600;line-height:1}
+.wb{font-family:'JetBrains Mono','Courier New',Courier,monospace;font-size:15px;font-weight:600;line-height:1}
 .wl{color:var(--green)}.wm{color:var(--yellow)}.wh{color:var(--red)}
 .wlab{font-size:9px;color:var(--t3);margin-top:2px;letter-spacing:.5px}
 
@@ -117,7 +117,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .dp-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
 .dp-cell{background:rgba(0,0,0,.2);border-radius:8px;padding:8px;text-align:center}
 .dp-lbl{font-size:9px;color:var(--t3);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
-.dp-val{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700}
+.dp-val{font-family:'JetBrains Mono','Courier New',Courier,monospace;font-size:17px;font-weight:700}
 .ai-hdr{font-size:9px;font-weight:700;color:var(--t3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px}
 .ai-ld{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--t3);padding:2px 0}
 .ms{width:9px;height:9px;border:1.5px solid rgba(255,255,255,.12);border-top-color:var(--t2);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
@@ -134,19 +134,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .op-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
 .oc{text-align:center}
 .ol{font-size:9px;color:var(--t3);letter-spacing:1px;margin-bottom:2px}
-.ov{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600}
+.ov{font-family:'JetBrains Mono','Courier New',Courier,monospace;font-size:13px;font-weight:600}
 
 /* SEARCH TAB */
 .search-wrap{padding:0 0 8px}
 .search-box-wrap{position:relative;margin-bottom:14px}
-.search-box{width:100%;background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:11px 14px 11px 38px;color:var(--text);font-family:'Inter',sans-serif;font-size:14px;outline:none;-webkit-appearance:none}
+.search-box{width:100%;background:var(--s1);border:1px solid var(--bd2);border-radius:12px;padding:11px 14px 11px 38px;color:var(--text);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;outline:none;-webkit-appearance:none}
 .search-box:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,215,0,.1)}
 .search-box::placeholder{color:var(--t3)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none}
-.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--s3);border:none;color:var(--t3);font-size:11px;border-radius:8px;padding:2px 7px;cursor:pointer;font-family:'Inter',sans-serif;display:none}
+.search-clear{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:var(--s3);border:none;color:var(--t3);font-size:11px;border-radius:8px;padding:2px 7px;cursor:pointer;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:none}
 .search-filters{display:flex;gap:5px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px}
 .search-filters::-webkit-scrollbar{display:none}
-.sfb{flex-shrink:0;padding:5px 11px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
+.sfb{flex-shrink:0;padding:5px 11px;border-radius:16px;border:1px solid var(--bd2);background:transparent;color:var(--t3);font-size:11px;font-weight:600;cursor:pointer;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;transition:all .2s;-webkit-tap-highlight-color:transparent}
 .sfb.on{background:var(--s3);color:var(--text)}
 .search-results-label{font-size:10px;color:var(--t3);letter-spacing:1.5px;font-weight:700;text-transform:uppercase;margin-bottom:10px;padding:0 4px}
 .no-results{text-align:center;padding:40px 0;color:var(--t3);font-size:13px;line-height:1.6}
@@ -427,7 +427,7 @@ const HIST = {
   "Soarin' Around the World":                    {avg:16,freq:'Low', rel:'High'},
   "Remy's Ratatouille Adventure":                {avg:20,freq:'Med', rel:'Med'},
   'Avatar Flight of Passage':                    {avg:30,freq:'Med', rel:'Med'},
-  'Expedition Everest':                          {avg:35,freq:'High',rel:'Low'},
+  'Expedition Everest - Legend of the Forbidden Mountain': {avg:35,freq:'High',rel:'Low'},
   'DINOSAUR':                                    {avg:18,freq:'Low', rel:'High'},
   'Kilimanjaro Safaris':                         {avg:12,freq:'Low', rel:'High'},
   _default:                                      {avg:20,freq:'Med', rel:'Med'},
@@ -468,7 +468,7 @@ function timedFetch(url, ms) {
 
 async function fetchQueueTimes() {
   const qtUrl = QT(S.park);
-  const workerReady = WORKER && !WORKER.includes('YOUR_WORKER');
+  const workerReady = WORKER && WORKER.startsWith('https://');
   const urls = [];
   if(workerReady) urls.push(WORKER + '?park=' + S.park);
   PROXIES.forEach(p => urls.push(p + encodeURIComponent(qtUrl)));
@@ -789,7 +789,7 @@ function rideHTML(r) {
   if(r.status === 'down') {
     const ai = S.aiCache[r.id];
     const estRemain = Math.max(0, h.avg - dm);
-    const conf = Math.min(92, Math.max(18, 88 - dm * 1.8));
+    const conf = Math.min(92, Math.max(18, 88 - dm * 0.8));
     detail = `
     <div class="dp-panel">
       <div class="dp-grid">
@@ -1026,7 +1026,7 @@ function startTimers() {
       const el = document.getElementById('tmr-' + id);
       if(el) el.textContent = fmt(Math.floor((Date.now() - ts) / 60000));
     });
-  }, 30000);
+  }, 5000);
 }
 
 function fmt(m) {
@@ -1091,7 +1091,7 @@ function showErr() {
     </div>
     <div class="setup-card">
       <div class="sch">🚀 Open the Live Site</div>
-      <div class="scr"><div class="snum">1</div><div>Go to <strong style="color:var(--gold)">disney-tracker-chi.vercel.app</strong> in Safari</div></div>
+      <div class="scr"><div class="snum">1</div><div>Go to <strong style="color:var(--gold)">${window.location.hostname || 'disney-tracker-chi.vercel.app'}</strong> in Safari</div></div>
       <div class="scr"><div class="snum">2</div><div>Tap Share → Add to Home Screen to install as an app</div></div>
       <div class="scr"><div class="snum">3</div><div>For reliable data: deploy <strong>worker.js</strong> to Cloudflare Workers</div></div>
     </div>`;
@@ -1105,7 +1105,7 @@ function checkStale() {
   if(!banner) return;
   const stale = S.fetchFailures > 0 ||
     (S.lastFetch && Date.now() - S.lastFetch.getTime() > 5 * 60 * 1000);
-  banner.style.display = stale ? '' : 'none';
+  banner.style.display = stale ? 'block' : 'none';
 }
 
 // ═══════════════════════════════════════════════════
