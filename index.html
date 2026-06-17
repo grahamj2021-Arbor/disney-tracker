@@ -174,6 +174,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .urow{text-align:center;font-size:10px;color:var(--t3);padding:10px 0 3px;letter-spacing:.5px}
 .pby{text-align:center;padding:3px 0 10px;font-size:10px;color:var(--t3)}
 .pby a{color:var(--blue);text-decoration:none}
+
+/* STALE DATA BANNER */
+.stale-banner{background:rgba(250,204,21,.08);border-bottom:1px solid rgba(250,204,21,.2);padding:5px 16px;font-size:10px;color:var(--yellow);font-weight:600;text-align:center;letter-spacing:.5px;display:none}
 </style>
 </head>
 <body>
@@ -209,6 +212,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     </div>
   </div>
 
+  <div class="stale-banner" id="stale-banner">⚠️ Data may be stale — tap LIVE to refresh</div>
   <div class="content" id="content">
     <div class="lscr"><div class="bspin"></div><div class="ltxt">Loading live ride data…</div></div>
   </div>
@@ -447,6 +451,7 @@ const S = {
   downSince: loadDownSince(), aiCache:{}, expanded:new Set(),
   prevDown:new Set(), lastFetch:null,
   refreshTimer:null, countdownTimer:null, nextRefresh:null,
+  fetchFailures:0,
 };
 
 // ═══════════════════════════════════════════════════
@@ -504,15 +509,21 @@ async function fetchPark() {
   ]);
 
   if(!qtData && !tpLiveData) {
+    S.fetchFailures++;
+    // Exponential backoff: 30s → 60s → 120s → 240s → max 5 min
+    const delay = Math.min(300000, 30000 * Math.pow(2, S.fetchFailures - 1));
     if(lbl) lbl.textContent = 'RETRY';
     if(!S.rides.length) showErr();
-    scheduleRefresh(30000);
+    checkStale();
+    scheduleRefresh(delay);
     return;
   }
 
+  S.fetchFailures = 0;
   processData(qtData, tpLiveData);
   S.lastFetch = new Date();
   if(lbl) lbl.textContent = 'LIVE';
+  checkStale();
 
   if(S.activeTab === 'rides') renderRides();
   else renderSearch();
@@ -529,6 +540,7 @@ function scheduleRefresh(ms) {
     const rem = Math.max(0, Math.ceil((S.nextRefresh - Date.now()) / 1000));
     const el = document.getElementById('countdown');
     if(el) el.textContent = `Next: ${Math.floor(rem/60)}:${(rem%60).toString().padStart(2,'0')}`;
+    checkStale();
   }
   tick();
   S.countdownTimer = setInterval(tick, 1000);
@@ -717,7 +729,7 @@ function renderRides() {
     S.lands.forEach(land => {
       const lr = rides.filter(r => r.land === land);
       if(!lr.length) return;
-      html += `<div class="land-hdr">${land}</div>` + lr.map(rideHTML).join('');
+      html += `<div class="land-hdr">${esc(land)}</div>` + lr.map(rideHTML).join('');
     });
     const other = rides.filter(r => !S.lands.includes(r.land));
     if(other.length) html += `<div class="land-hdr">Other</div>` + other.map(rideHTML).join('');
@@ -786,7 +798,7 @@ function rideHTML(r) {
       </div>
       <div class="ai-hdr">AI Estimate — Time Until Reopen</div>
       ${ai && ai.text != null
-        ? `<div class="ai-txt">${ai.text}</div>
+        ? `<div class="ai-txt">${esc(ai.text)}</div>
            <div class="conf-wrap"><div class="conf-bar" style="width:${conf.toFixed(0)}%"></div></div>
            <div class="conf-lbl">${conf.toFixed(0)}% confidence</div>`
         : `<div class="ai-ld" id="ald-${r.id}"><div class="ms"></div><span>Calculating estimate…</span></div>
@@ -813,8 +825,8 @@ function rideHTML(r) {
     <div class="rc-main">
       <div class="rsd ${dotc}"></div>
       <div class="ri">
-        <div class="rname">${rd.emoji || '🎢'} ${r.name}</div>
-        <div class="rmeta"><span class="rland">${r.land}</span></div>
+        <div class="rname">${rd.emoji || '🎢'} ${esc(r.name)}</div>
+        <div class="rmeta"><span class="rland">${esc(r.land)}</span></div>
         <div class="rthrills">
           <span class="thrill-badge ${thrillCls}">${thrillEmoji} ${rd.thrill}</span>
           ${rd.height ? `<span class="height-badge">📏 ${rd.height}</span>` : '<span class="height-badge">Any Height</span>'}
@@ -845,7 +857,7 @@ function renderSearch() {
       <div class="search-box-wrap">
         <span class="search-icon">🔍</span>
         <input class="search-box" id="search-input" type="text" placeholder="Search rides across all parks…"
-          value="${S.searchQuery}" oninput="onSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"/>
+          value="${esc(S.searchQuery)}" oninput="onSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false"/>
         <button class="search-clear" id="search-clear" onclick="clearSearch()" style="${S.searchQuery?'display:block':'display:none'}">✕ Clear</button>
       </div>
       <div class="search-filters">
@@ -989,7 +1001,7 @@ function searchCardHTML({name, rd, live}) {
     <div class="rc-main">
       <div class="rsd ${dotc}"></div>
       <div class="ri">
-        <div class="rname">${rd.emoji || '🎢'} ${name}</div>
+        <div class="rname">${rd.emoji || '🎢'} ${esc(name)}</div>
         <div class="rthrills">
           <span class="thrill-badge ${thrillCls}">${thrillEmoji} ${rd.thrill}</span>
           ${rd.height ? `<span class="height-badge">📏 ${rd.height}</span>` : '<span class="height-badge">Any Height</span>'}
@@ -1021,6 +1033,16 @@ function fmt(m) {
   if(m < 1) return '<1m';
   if(m < 60) return m + 'm';
   return Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+}
+
+// Escape HTML entities to prevent XSS when inserting API-sourced strings into innerHTML
+function esc(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // ═══════════════════════════════════════════════════
@@ -1074,6 +1096,36 @@ function showErr() {
       <div class="scr"><div class="snum">3</div><div>For reliable data: deploy <strong>worker.js</strong> to Cloudflare Workers</div></div>
     </div>`;
 }
+
+// ═══════════════════════════════════════════════════
+// STALE DATA DETECTION
+// ═══════════════════════════════════════════════════
+function checkStale() {
+  const banner = document.getElementById('stale-banner');
+  if(!banner) return;
+  const stale = S.fetchFailures > 0 ||
+    (S.lastFetch && Date.now() - S.lastFetch.getTime() > 5 * 60 * 1000);
+  banner.style.display = stale ? '' : 'none';
+}
+
+// ═══════════════════════════════════════════════════
+// PAGE VISIBILITY — pause refresh when tab is hidden,
+// resume (or fetch immediately if overdue) on unhide
+// ═══════════════════════════════════════════════════
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden') {
+    clearTimeout(S.refreshTimer);
+    clearInterval(S.countdownTimer);
+  } else {
+    const now = Date.now();
+    if(!S.nextRefresh || now >= S.nextRefresh) {
+      fetchPark();
+    } else {
+      scheduleRefresh(S.nextRefresh - now);
+    }
+    checkStale();
+  }
+});
 
 // ═══════════════════════════════════════════════════
 // BOOT

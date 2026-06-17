@@ -1,22 +1,29 @@
 {
-  "name": "Atlanta Braves Dashboard",
-  "short_name": "Braves",
-  "description": "2026 Atlanta Braves live stats dashboard",
-  "start_url": "./braves-dashboard.html",
+  "name": "Disney World Live Ride Status",
+  "short_name": "Disney Rides",
+  "description": "Live Walt Disney World ride wait times, downtime alerts, and thrill-level filters across all four parks.",
+  "start_url": "./",
   "display": "standalone",
-  "background_color": "#0a0f0d",
-  "theme_color": "#0a0f0d",
-  "orientation": "portrait",
+  "background_color": "#000814",
+  "theme_color": "#000814",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%23002B5C'/%3E%3Ctext x='96' y='130' font-size='110' text-anchor='middle' fill='%23CE1141' font-family='Arial Black'%3EA%3C/text%3E%3C/svg%3E",
+      "src": "icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%23002B5C'/%3E%3Ctext x='256' y='350' font-size='300' text-anchor='middle' fill='%23CE1141' font-family='Arial Black'%3EA%3C/text%3E%3C/svg%3E",
+      "src": "icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
     }
   ]
 }
