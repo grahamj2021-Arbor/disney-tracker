@@ -584,8 +584,8 @@ function processData(qtData, tpLiveData) {
     if(!tp) return null;
     const s = tp.status;
     if(s === 'OPERATING') return 'open';
-    if(s === 'DOWN') return 'down';
-    if(s === 'REFURBISHMENT' || s === 'CLOSED') return 'refurb';
+    if(s === 'DOWN' || s === 'CLOSED') return 'down';
+    if(s === 'REFURBISHMENT') return 'refurb';
     return null;
   }
 
@@ -596,10 +596,7 @@ function processData(qtData, tpLiveData) {
     let qtStatus = null;
     if(qtRide) {
       if(qtRide.is_open) qtStatus = 'open';
-      else {
-        const age = qtRide.last_updated ? (Date.now() - new Date(qtRide.last_updated).getTime()) : 0;
-        qtStatus = age > 3 * 60 * 60 * 1000 ? 'refurb' : 'down';
-      }
+      else qtStatus = 'down';
     }
     const tpStatus = tpStatusOf(tp);
 
@@ -798,7 +795,7 @@ function rideHTML(r) {
   } else if(r.status === 'down') {
     badge = `<div class="wb" style="color:var(--red)">DOWN</div><div class="wlab">STATUS</div>`;
   } else {
-    badge = `<div class="wb" style="color:var(--yellow)">CLOSED</div><div class="wlab">STATUS</div>`;
+    badge = `<div class="wb" style="color:var(--yellow)">REFURB</div><div class="wlab">STATUS</div>`;
   }
 
   let detail = '';
