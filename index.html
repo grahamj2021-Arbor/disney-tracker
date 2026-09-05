@@ -449,7 +449,7 @@ const S = {
   searchQuery:'', searchPark:'all', searchThrill:'all',
   rides:[], lands:[],
   downSince: loadDownSince(), aiCache:{}, expanded:new Set(),
-  prevDown:new Set(), lastFetch:null,
+  prevDown:new Set(), pendingDown:new Set(), lastFetch:null,
   refreshTimer:null, countdownTimer:null, nextRefresh:null,
   fetchFailures:0,
 };
@@ -603,13 +603,29 @@ function processData(qtData, tpLiveData) {
     }
     const tpStatus = tpStatusOf(tp);
 
-    // Merge rule: DOWN if at least one source reports DOWN.
-    // Otherwise OPEN if at least one reports OPEN. Otherwise REFURB. Default open.
+    // TP is authoritative: it pulls from Disney's own real-time API.
+    // QT is crowd-sourced and used only when TP has no data for this ride.
     let status;
-    if(qtStatus === 'down' || tpStatus === 'down') status = 'down';
-    else if(qtStatus === 'open' || tpStatus === 'open') status = 'open';
-    else if(qtStatus === 'refurb' || tpStatus === 'refurb') status = 'refurb';
-    else status = 'open';
+    if(tpStatus !== null) {
+      status = tpStatus;
+    } else if(qtStatus !== null) {
+      status = qtStatus;
+    } else {
+      status = 'open';
+    }
+
+    // Require 2 consecutive DOWN detections before confirming — prevents
+    // transient API blips from flashing "<1m" down times.
+    if(status === 'down') {
+      if(S.prevDown.has(id) || S.pendingDown.has(id)) {
+        S.pendingDown.delete(id); // confirmed
+      } else {
+        S.pendingDown.add(id);    // first sighting — pend, show as open
+        status = 'open';
+      }
+    } else {
+      S.pendingDown.delete(id);   // came back up or never went down
+    }
 
     let wait = qtRide?.wait_time || 0;
     if(!wait && tp?.queue?.STANDBY?.waitTime) wait = tp.queue.STANDBY.waitTime;
@@ -695,7 +711,7 @@ function switchTab(tab) {
 function selPark(id, cls, btn) {
   S.park = id; S.rides = []; S.lands = [];
   S.aiCache = {}; S.expanded = new Set();
-  S.prevDown = new Set(); S.filter = 'all'; S.thrillFilter = 'all';
+  S.prevDown = new Set(); S.pendingDown = new Set(); S.filter = 'all'; S.thrillFilter = 'all';
   document.querySelectorAll('.ptab').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   document.getElementById('content').innerHTML =
